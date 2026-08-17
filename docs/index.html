@@ -77,14 +77,6 @@
   .callout.risk{border-left-color:var(--danger);}
   .callout.good{border-left-color:var(--good);}
   .callout.fix{border-left-color:var(--accent); background:color-mix(in srgb, var(--accent) 6%, var(--card));}
-  .revision{
-    background:var(--card); border:1px solid var(--accent-soft); border-radius:10px;
-    padding:1.4rem 1.6rem; margin:2rem 0;
-    font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif; font-size:.92rem;
-  }
-  .revision h2{border-top:none; margin-top:0; padding-top:0; font-size:1.1rem; text-transform:uppercase; letter-spacing:.05em;}
-  .revision ol{padding-left:1.2rem;}
-  .revision li{font-size:.92rem; margin-bottom:.6rem;}
   table{
     width:100%; border-collapse:collapse; margin:1.4rem 0;
     font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif; font-size:.88rem;
@@ -121,19 +113,20 @@
     background:var(--code-bg); color:var(--accent); border:1px solid var(--line);
     padding:.1rem .45rem; border-radius:4px; margin-right:.4rem; white-space:nowrap;
   }
-  .versionnote{
-    background:var(--card); border:1px dashed var(--line); border-radius:8px;
-    padding:.9rem 1.1rem; margin:1rem 0;
-    font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif; font-size:.85rem; color:var(--ink-soft);
+  .lede{
+    background:var(--card); border:1px solid var(--line); border-radius:10px;
+    padding:1.2rem 1.4rem; margin:2rem 0;
+    font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif; font-size:.92rem; color:var(--ink-soft);
   }
+  .lede strong{color:var(--ink);}
 </style>
 </head>
 <body>
 
 <header class="hero">
-  <div class="eyebrow">EIB Group Charity Game &middot; 17 September 2026 &middot; Revision 5</div>
+  <div class="eyebrow">EIB Group Charity Game &middot; 17 September 2026</div>
   <h1>European Legends — Office Adventure Game</h1>
-  <p>An independent balance &amp; design review of the ruleset, through three rounds of independent review — ahead of an economic simulation of the trading and crafting system.</p>
+  <p>An independent balance &amp; design review of the ruleset, ahead of an economic simulation of the trading and crafting system.</p>
   <nav class="meta">
     <span>Ruleset v.16&nbsp;Aug&nbsp;2026</span>
     <span>8 guilds &middot; 40 players</span>
@@ -149,27 +142,8 @@
     <figure><img src="assets/guilds.jpg" alt="The eight guilds"><figcaption>Fig. 3 — The eight guilds</figcaption></figure>
   </div>
 
-  <div class="revision">
-    <h2>0. What changed, across three review rounds</h2>
-    <p><strong>Revision 2</strong> fixed real errors found in the first draft: a wrong claim about starting-hand recipes, overstated loan math, a sale-price-vs-strategic-value conflation, a missed scoring contradiction, and an unmeasured scheduling claim (later backed by a toy model).</p>
-    <p><strong>Revision 3</strong> added two things a further review caught as genuinely missing from revision 2: the winner's-first-pick and +5-bonus snowball mechanisms (§2.7), and confidence labels (<code>[Established]</code> / <code>[Derived]</code> / <code>[Risk]</code> / <code>[Open]</code>) throughout, so claims don't read as more settled than they are.</p>
-    <p><strong>Revision 4</strong> fixed a real, high-priority flaw a third review found — the corrected rotation, toy-model description, and several precision issues.</p>
-    <p><strong>Revision 5</strong> fixes a fourth review's findings — this one caught a claim in revision 4 that was itself checked and found false, not just imprecise:</p>
-    <ul>
-      <li><strong>§1's "spans both other specialties" claim was wrong</strong>, verified computationally — every guild in the corrected rotation meets only 2 of the other 3 specialty-pairs. Full coverage is reachable only by letting each guild meet its own twin exactly once — a real tradeoff, not adopted here — so the false claim is corrected rather than the schedule redesigned again.</li>
-      <li><strong>§2.3's coin-admission accounting mixed up cash outflow (−15) with net wealth change (−11)</strong> — corrected.</li>
-      <li><strong>§2.5 overstated that a reward-pool collision makes trading "necessary"</strong> — softened to "creates pressure to," since a guild could craft the item itself instead.</li>
-      <li><strong>"Verified by exhaustive search" overstated the rotation script</strong> — it stops at the first valid schedule and checks that one, not an enumeration of all schedules. Corrected in the text and the script's own docstring.</li>
-      <li><strong>§8's "rational vs. casual" agents needed concrete specification</strong> — added explicit requirements for craft choice, room-access valuation, trade initiation/acceptance, inventory reasoning, and reward-card selection.</li>
-    </ul>
-    <ol>
-      <li><strong>The §1 rotation was a genuine design mistake.</strong> It solved room capacity but paired every guild with the <em>same</em> opponent all 4 rounds (Lisbon always vs. Bursa, etc.) — bad for the event's networking purpose, and it let the winner's-first-pick snowball (§2.7) concentrate against one weaker guild all game. Replaced with a schedule — verified in code — where every guild still visits all 4 rooms once but faces a <strong>different opponent every round, with zero repeats</strong>.</li>
-      <li><strong>The toy scheduling model's description was imprecise</strong> — it does not model "no visibility"; guilds have full knowledge of remaining room capacity when choosing. The 38.2% result is unchanged; only its description and interpretation were corrected.</li>
-      <li><strong>"Lower-bound-ish worst case" was an unsupported framing</strong> — reworded as a policy-specific baseline, not a bound in either direction.</li>
-      <li>Smaller precision fixes: the starting-hand section's claim about residual randomness, §2.3's "net asset loss ≈ 0" now separates liquidation from strategic value, the shared-reward-pool reading flagged as an assumption to confirm, an opponent/interaction-diversity metric added to §8, and §9 reordered to lead with the rotation fix.</li>
-    </ol>
-    <div class="versionnote">A second review (addressed in revision 3's writeup) turned out to be quoting revision 1 content, most likely due to a GitHub Pages build delay during a GitHub-wide outage. If reviewing this document, please confirm you're reading the current commit on <code>main</code>.</div>
-    <p style="margin-bottom:0"><strong>Confidence labels used from here on:</strong> <span class="tag">Established</span> stated directly in the source rules. <span class="tag">Derived</span> follows deductively from the rules. <span class="tag">Risk</span> a credible concern, not yet quantified. <span class="tag">Open</span> a question the written rules can't settle — needs simulation. Not every sentence is labeled, only load-bearing claims.</p>
+  <div class="lede">
+    Findings are organized by severity/type — structural risks, economic balance, timing, rules gaps, operational risk, and what's already working well — and tagged by confidence: <span class="tag">Established</span> stated directly in the source rules, <span class="tag">Derived</span> follows deductively from the rules, <span class="tag">Risk</span> a credible concern not yet quantified, <span class="tag">Open</span> a question the written rules can't settle on their own and needs simulation. Not every sentence is tagged — only the load-bearing claims.
   </div>
 
   <h2 id="s1"><span class="badge risk">Risk</span>1. Room scheduling has no coordination mechanism</h2>
@@ -180,10 +154,10 @@
     <div class="metric"><div class="n">82.3%</div><div class="l">Guild-slots completing all 4 rooms</div></div>
     <div class="metric"><div class="n">17.6%</div><div class="l">Guild-slots missing exactly 1 room</div></div>
   </div>
-  <p><span class="tag">Derived — toy model</span>(method in §7): under a policy where guilds pick, one at a time in random order, uniformly among rooms they haven't visited that still have a free slot — full knowledge of current availability, but no negotiation or anticipation — only <strong>38% of games</strong> finish with every guild visiting every room. This is <strong>not a bound</strong> on the real event in either direction (real players might do better via negotiation, or worse from concurrent decisions and imperfect queue visibility) — it's evidence that an allocation problem exists under this policy, not an estimate of the event's actual odds. An independent reviewer's own quick check landed within 1 point (38.4%).</p>
+  <p><span class="tag">Derived — toy model</span>(method in §7): under a policy where guilds pick, one at a time in random order, uniformly among rooms they haven't visited that still have a free slot — full knowledge of current availability, but no negotiation or anticipation — only <strong>38% of games</strong> finish with every guild visiting every room. This is <strong>not a bound</strong> on the real event in either direction (real players might do better via negotiation, or worse from concurrent decisions and imperfect queue visibility) — it's evidence that an allocation problem exists under this policy, not an estimate of the event's actual odds.</p>
 
   <div class="callout fix">
-    <strong>Recommendation — a rotation that solves capacity <em>and</em> keeps opponents varied:</strong> a first version of this table guaranteed capacity but paired every guild against the same opponent all 4 rounds (caught in review) — bad for networking, and it let the winner's-first-pick advantage (§2.7) concentrate against one guild. This corrected table, found by constraint search and programmatically verified in <a href="https://github.com/anselmotalotta/european-legends-analysis/blob/main/simulation/rotation_schedule.py">simulation/rotation_schedule.py</a>, keeps every guild visiting each room exactly once while guaranteeing <strong>no guild ever faces the same opponent twice, and no guild ever faces its own same-specialty twin</strong>:
+    <strong>Recommendation — a rotation that solves capacity <em>and</em> keeps opponents varied:</strong> found by constraint search and programmatically verified in <a href="https://github.com/anselmotalotta/european-legends-analysis/blob/main/simulation/rotation_schedule.py">simulation/rotation_schedule.py</a>, this table keeps every guild visiting each room exactly once while guaranteeing <strong>no guild ever faces the same opponent twice, and no guild ever faces its own same-specialty twin</strong>:
     <div class="table-scroll">
     <table>
       <thead><tr><th>Round</th><th>Room 1 (Cloth)</th><th>Room 2 (Dye)</th><th>Room 3 (Black Powder)</th><th>Room 4 (Candle)</th></tr></thead>
@@ -195,14 +169,14 @@
       </tbody>
     </table>
     </div>
-    <p style="margin-bottom:0">Every guild's 4 opponents are 4 distinct guilds. <strong>Correction:</strong> an earlier version of this text claimed those opponents "span both other production specialties" — checked computationally, that's false: every guild here meets only 2 of the 3 non-own specialty-pairs (e.g. Lisbon meets flax and charcoal guilds, never saltpetre). Full 3-specialty coverage is only reachable by letting each guild meet its own twin exactly once — a real design option, not adopted here. What this table does guarantee: room-once-per-guild, no repeated opponent, no twin-pairing at all. This table is also the input §2.1's starting-hand fix needs.</p>
+    <p style="margin-bottom:0">Every guild's 4 opponents are 4 distinct guilds, with no repeats and no twin-pairing. One known limitation: this table does <em>not</em> guarantee each guild meets all 3 non-own production specialties — every guild here meets only 2 of the 3 (e.g. Lisbon meets flax and charcoal guilds, never saltpetre). Full 3-specialty coverage is only reachable by letting each guild meet its own twin exactly once — a different design tradeoff, not adopted here. This table is also the input §2.1's starting-hand fix needs.</p>
   </div>
 
   <h2 id="s2"><span class="badge balance">Balance</span>2. Economic balance</h2>
 
-  <h3>2.1 Starting hands: two feasible recipes, not one — corrected</h3>
+  <h3>2.1 Starting hands: two feasible recipes, not one</h3>
   <p><span class="tag">Established</span>The four Tier-1 materials form a 4-cycle: <strong>Flax–Wax → Candle, Wax–Charcoal → Dye, Charcoal–Saltpetre → Black Powder, Saltpetre–Flax → Cloth.</strong> Diagonal pairs don't convert to anything.</p>
-  <p><span class="tag">Derived</span>Each guild starts missing exactly one of the four types. <strong>The first draft claimed the missing type determines a single craftable Tier-2 item. That's wrong</strong> — the guild can only manufacture one card (it holds one unit of the shared "hub" item), but has a <strong>choice of two</strong> possible recipes:</p>
+  <p><span class="tag">Derived</span>Each guild starts missing exactly one of the four types. That guild can only manufacture <em>one</em> Tier-2 card (it holds one unit of the shared "hub" item), but has a <strong>choice of two</strong> possible recipes:</p>
   <div class="table-scroll">
   <table>
     <thead><tr><th>Missing material</th><th>Starting materials</th><th>Tier-2 choices (pick one)</th></tr></thead>
@@ -214,9 +188,9 @@
     </tbody>
   </table>
   </div>
-  <p>This <strong>invalidates the original recommendation</strong> to deal kits so exactly 2 guilds are missing each type — that controls the aggregate opportunity set, not what guilds actually choose. Controlled dealing gives <strong>symmetrical opportunity, not balanced demand.</strong></p>
+  <p>This means simply dealing kits so exactly 2 guilds are missing each type gives a <strong>symmetrical opportunity set, not balanced demand</strong> — guilds still choose which of their two options to craft, and several could independently converge on the same one.</p>
   <div class="callout fix">
-    <strong>The actual deterministic fix:</strong> design starting hands against the corrected room rotation (§1), guaranteeing each guild's hand supports its <em>assigned first room's</em> item:
+    <strong>The deterministic fix:</strong> design starting hands against the room rotation (§1), guaranteeing each guild's hand supports its <em>assigned first room's</em> item:
     <div class="table-scroll">
     <table>
       <thead><tr><th>Guild</th><th>Round-1 room needs</th><th>Hand must not be missing</th><th>So hand should miss</th></tr></thead>
@@ -232,7 +206,6 @@
   </div>
 
   <h3>2.2 Tier-2 items are admission rights, not 4-coin commodities</h3>
-  <p>The first draft compared items purely by sale price (Tier 1 = 1, Tier 2 = 4, Tier 3 = 14) and concluded crafting up the chain is "strictly worth doing." <strong>That conflates sale price with strategic value</strong> — the biggest conceptual gap in the first draft.</p>
   <p><span class="tag">Derived</span>A Tier-2 item is also the entry ticket to a room that otherwise costs <strong>15 coins</strong> cash. Its shadow value right before a required room visit is much closer to "coins saved" than to its 4-coin liquidation price. A guild holding two Tier-2 cards can craft a Tier-3 (8→14, +6) <em>or</em> hold one back to skip a 15-coin cash fee — depending on which rooms remain, the second can be worth far more. <strong>Crafting up the chain before room obligations are met can be a mistake, not a free win.</strong></p>
   <p>This game has time-dependent, endogenous item values, not a fixed price ladder — the simulation needs to model individual item identity, not aggregate counts (§2.5, §8).</p>
 
@@ -242,15 +215,15 @@
     <li><strong>Item admission:</strong> surrender a 4-value card → receive a different 4-value card. Net <em>liquidation</em> value unchanged (4→4), plus quest coins and possibly the 5-coin win bonus.</li>
     <li><strong>Coin admission:</strong> surrender 15 real coins → (apparently) receive the same reward card worth 4 in liquidation. Cash outflow is 15, but net wealth change is <strong>−11, not −15</strong>.</li>
   </ul>
-  <p>That's a large asymmetry — <strong>holding the correct Tier-2 prerequisite may be one of the strongest strategic assets in the game.</strong> Worth being precise though: "net liquidation loss ≈ 0" is true in sale-price terms, but the strategic swing can be large either way — getting exactly the card you need next is a big win; being forced into one you don't (a reward-pool collision, §2.5) is a real loss even though the liquidation math nets to zero.</p>
+  <p>That's still a large asymmetry — <strong>holding the correct Tier-2 prerequisite may be one of the strongest strategic assets in the game.</strong> Worth being precise though: "net liquidation loss ≈ 0" is true in sale-price terms, but the strategic swing can be large either way — getting exactly the card you need next is a big win; being forced into one you don't (a reward-pool collision, §2.5) is a real loss even though the liquidation math nets to zero.</p>
   <p>Two open questions: does a coin-paying guild also receive a reward card? And is the "3 available items" reward one pool shared by both guilds with cards removed as each picks, or does each guild see its own separate 3? Both added to §4.</p>
 
-  <h3>2.4 Loans: the shortfall is usually much smaller than 15 coins — corrected</h3>
-  <p><span class="tag">Derived</span>The first draft assumed every loan is 15 coins, doubled to 30. The rule lends only <strong>the missing amount</strong>. Guilds start with 10 coins, so a guild needing the fallback with its starting coins intact needs a loan of only <strong>5</strong>, repaid as <strong>10</strong> — not 30. A full 15-coin loan only happens after a guild has already spent down to zero.</p>
-  <p><span class="tag">Open</span>The stronger claim — <em class="q">"eliminated from contention by round 2"</em> — was asserted without math. Honest version: <strong>loans can create negative feedback, but how severe it actually is depends on quantities the written rules don't pin down, and needs to come from simulation.</strong> Loans aren't the only such mechanism — see §2.7.</p>
+  <h3>2.4 Loans: the shortfall is usually much smaller than 15 coins</h3>
+  <p><span class="tag">Derived</span>The rule lends only <strong>the missing amount</strong>, not the full fee. Guilds start with 10 coins, so a guild needing the fallback with its starting coins intact needs a loan of only <strong>5</strong>, repaid as <strong>10</strong> — not 30. A full 15-coin loan only happens after a guild has already spent down to zero.</p>
+  <p><span class="tag">Open</span>Whether a guild could be effectively out of contention within the first couple of rounds through loan debt alone is a real possibility but not something the written rules can establish — the severity depends on quantities the rules don't pin down, and needs to come from simulation. Loans aren't the only such mechanism — see §2.7.</p>
 
   <h3>2.5 The central open question: does this economy actually require trading?</h3>
-  <p><span class="tag">Open</span>This cuts against the first draft's own claim that the recipe cycle "forces genuine cross-guild trading."</p>
+  <p><span class="tag">Open</span>The recipe cycle alone doesn't obviously force cross-guild trading.</p>
   <p><span class="tag">Derived</span>A guild that never trades can craft one Tier-2 item from its starting hand, pay into Room 1, and receive a <em>different</em> Tier-2 as reward. If that reward matches an unvisited room, it can chain straight through all four rooms on its own inventory plus its own Tier-1 production — no other guild required.</p>
   <p>What can break the chain: <strong>each room seats 2 guilds sharing one reward pool of 3 cards</strong> (an interpretation — see §4), winner picks first. If both guilds want the same next-room item, the loser is forced elsewhere — creating pressure to trade or fall back to a coin payment, though not strictly requiring it, since the guild could instead craft the item itself later.</p>
   <div class="callout risk">Since networking is a stated purpose of the event, <strong>whether the rules create enough scarcity to force trading — or whether solo chaining can win outright — should be one of the first things the simulation measures</strong>, ahead of tuning loan interest or Tier-3 prices.</div>
@@ -259,11 +232,10 @@
   <p><span class="tag">Established</span>The 20-coin guild-special bonus and each guild's unique quest aren't defined yet. Relevant to §2.4's catch-up question and guild identity — worth finishing before final simulation runs.</p>
 
   <h3>2.7 Loans aren't the only snowball mechanism</h3>
-  <p>The first draft treated loan debt as <em>the</em> negative-feedback mechanism. It isn't the only one — the other two reward guilds for <em>winning</em>, not just penalize for losing, so they can compound with loans rather than offset them.</p>
+  <p>Two further mechanisms reward guilds for <em>winning</em>, not just penalize for losing — meaning they can compound with loans rather than offset them.</p>
   <p><span class="tag">Derived</span><strong>1. The room winner picks their Tier-2 reward first.</strong> <em>"The winners choose first from 3 available items, the losers choose second."</em> A guild ahead on quest skill also gets first pick of its next strategic asset (§2.3) — determining whether it can chain to its next room (§2.5) or has to trade/pay coins instead.</p>
   <p><span class="tag">Derived</span><strong>2. The +5 room-win bonus is positively correlated with quest skill, not independent of it.</strong> It's added on top of an existing lead, not distributed independently — a guild strong at a room's specific skills gets rewarded twice for the same underlying advantage.</p>
-  <p><span class="tag">Open</span>Together with loans, that's <strong>three mechanisms that could all push the same direction</strong>: skilled/lucky guilds get more coins, better future inventory, and avoid debt, while weaker guilds get none of that and accrue interest too. Whether this compounds into a runaway lead, or is damped by other randomness, is exactly what the simulation should measure.</p>
-  <p><span class="tag">Derived</span>This is also why the §1 rotation fix mattered beyond capacity: the original rotation paired every guild against the same opponent all 4 rounds, letting this compounding advantage snowball repeatedly against one weaker guild. The corrected rotation doesn't eliminate the mechanism, but stops it concentrating on a single guild.</p>
+  <p><span class="tag">Open</span>Together with loans, that's <strong>three mechanisms that could all push the same direction</strong>: skilled/lucky guilds get more coins, better future inventory, and avoid debt, while weaker guilds get none of that and accrue interest too. Whether this compounds into a runaway lead, or is damped by other randomness, is exactly what the simulation should measure. The §1 rotation (no repeated opponents) at least stops any such compounding from concentrating repeatedly against one specific guild.</p>
   <p>Worth testing directly: a rubber-banding variant where the <strong>loser</strong> picks their reward card first. Not a recommendation to adopt it — just a cheap comparison to isolate how much of the snowball comes from this one rule versus the +5 bonus or loans (added to §8).</p>
 
   <h2 id="s3"><span class="badge risk">Timing</span>3. Timing</h2>
@@ -284,7 +256,7 @@
   <p>Workable on paper, but per §3.1 there's no cushion elsewhere to absorb overruns.</p>
 
   <h2 id="s4"><span class="badge balance">Gaps</span>4. Rules ambiguities worth resolving first</h2>
-  <p>Reordered — the scoring contradiction is promoted to the top since it affects simulation parameters directly, not just clarity.</p>
+  <p>The scoring contradiction is listed first since it affects simulation parameters directly, not just clarity.</p>
   <ol>
     <li><strong>Quest scoring scale contradicts itself.</strong> The generic rule allows only 0/2/4/6/8/10, but the "1 coin per correct answer" quests (Music, Art, Languages) can score any value 0–10, and Cartographer's Workshop / Architect's Challenge scoring both include odd values (3, 5, 7). Only Locksmith's Secret is actually consistent with the generic rule.</li>
     <li><strong>Does the 15-coin fallback also grant a reward Tier-2 item?</strong> (§2.3) — changes the relative cost of the two admission paths substantially.</li>
@@ -307,10 +279,9 @@
     <li>Charity ticket design (fixed €20, no refund) is clean and doesn't interact with the in-game economy.</li>
     <li>The two-guilds-per-room reward pool (§2.5) is a subtle, probably-intentional scarcity mechanism worth preserving — it may do more balancing work than the recipe graph itself.</li>
   </ul>
-  <p style="font-size:.85rem; color:var(--ink-soft); font-style:italic;">Removed since the first draft: "the recipe graph forces cross-guild trading" (now an open question, §2.5) and the room-win bonus described as consequence-free (now qualified, §2.7).</p>
 
   <h2 id="s7">7. Appendix: toy scheduling model (supporting §1, not the full simulation)</h2>
-  <p><strong>Method (precisely, per review correction):</strong> 8 guilds, 4 rooms, 4 rounds, capacity 2/room/round. Each round, guilds process in random order and pick uniformly among rooms they haven't visited with a free slot — i.e. <strong>full knowledge of current availability</strong>, but no negotiation and no anticipation. 200,000 simulated games, seeded for reproducibility. Code: <a href="https://github.com/anselmotalotta/european-legends-analysis/blob/main/simulation/toy_scheduling_model.py">simulation/toy_scheduling_model.py</a>.</p>
+  <p><strong>Method:</strong> 8 guilds, 4 rooms, 4 rounds, capacity 2/room/round. Each round, guilds process in random order and pick uniformly among rooms they haven't visited with a free slot — i.e. <strong>full knowledge of current availability</strong>, but no negotiation and no anticipation. 200,000 simulated games, seeded for reproducibility. Code: <a href="https://github.com/anselmotalotta/european-legends-analysis/blob/main/simulation/toy_scheduling_model.py">simulation/toy_scheduling_model.py</a>.</p>
   <div class="table-scroll">
   <table>
     <thead><tr><th>Metric</th><th>Result</th></tr></thead>
@@ -322,7 +293,6 @@
     </tbody>
   </table>
   </div>
-  <p>An independent reviewer's own check using the same approach landed at 38.4% — consistent within simulation noise.</p>
   <p><strong>Reading these numbers:</strong> not a prediction or bound on the real event — real players might do better (negotiation, visible queues) or worse (concurrent decisions, confusion, time pressure), and nothing here says which dominates. What it establishes: under one simple, fully-specified decentralized policy, exact capacity-equals-demand doesn't guarantee successful allocation. It's also scope-limited: this model only tests the room/seat mechanic in isolation, not its entanglement with which Tier-2 item a guild holds, coins, loans, or the previous room's reward (§2.1–§2.5) — deliberately, so 38.2% shouldn't be read as an estimate of the full economy. It exists to make the §1 risk checkable and to benchmark the fixed rotation, which reaches 100% by construction.</p>
 
   <h2 id="s8">8. Simulation plan (methodology, before any code for the full model)</h2>
@@ -344,7 +314,7 @@
   <div class="callout risk"><strong>Before implementation: item 9 needs concrete agent behavior specs, not just a label.</strong> Without pinning down actual decision rules, a full simulator can produce precise-looking output that's really just an artifact of whatever behavior got implemented. Each agent policy needs explicit rules for: <strong>craft choice</strong> (when to convert vs. hold, §2.2), <strong>room-access valuation</strong> (holding an item for a room vs. liquidating it), <strong>trade initiation/acceptance</strong> (what price an agent offers or accepts), <strong>reasoning about other guilds' inventories</strong>, and <strong>reward-card selection</strong> (§2.3). "Rational" and "casual" should be two different concrete implementations of all five, not two labels on the same logic.</div>
   <h4>Design variants to compare</h4>
   <ul>
-    <li>Fixed room rotation with repeated opponents (the original, flawed §1 table) vs. the corrected varied-opponent rotation vs. free-choice scheduling — should make the opponent-repetition cost directly visible in the numbers, not just argued from principle.</li>
+    <li>Fixed room rotation (§1) vs. free-choice scheduling — should make the opponent-repetition cost from §2.7 directly visible in the numbers, not just argued from principle.</li>
     <li>Coordinated starting hands (§2.1) vs. purely random.</li>
     <li>Current loan interest (double) vs. capped/first-loan-only.</li>
     <li>Current Tier-3 sale values vs. alternatives.</li>
@@ -355,8 +325,8 @@
 
   <h2 id="s9">9. Priority order for fixes</h2>
   <ol class="priority">
-    <li><strong>Use the corrected room/opponent rotation</strong> (§1) — it satisfies capacity and opponent diversity together; the first version only did the former and shouldn't be implemented as originally written.</li>
-    <li><strong>Correct understanding of starting hands</strong> (§2.1), coordinated with the rotation from #1.</li>
+    <li><strong>Use the room/opponent rotation in §1</strong> — it satisfies capacity and opponent diversity together.</li>
+    <li><strong>Coordinate starting hands</strong> (§2.1) with the rotation from #1.</li>
     <li><strong>Model Tier-2 items as admission rights</strong> (§2.2–§2.3), not commodities.</li>
     <li><strong>Determine whether trading is actually necessary</strong> (§2.5) — directly relevant to the networking purpose.</li>
     <li><strong>Model the three snowball mechanisms together</strong> (§2.7) before rebalancing any single one in isolation.</li>
