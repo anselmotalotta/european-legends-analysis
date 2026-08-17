@@ -8,13 +8,22 @@ capacity margin)?
 
 Model: each round, guilds are processed in a random order; each guild
 picks uniformly at random among rooms it hasn't visited yet that still
-have a free slot this round. If none are available, the guild gets no
-room this round (in the real event this is where a loan / missed quest
-would happen). This is deliberately the simplest possible model of
-"guilds act independently with no negotiation" — a lower bound on how
-bad unmanaged scheduling could be, used only to check whether the
-concern in the written analysis is measurable, not to predict the
-real event (real players negotiate, see queues, and have a GM).
+have a free slot this round. Note this gives each guild full, accurate
+knowledge of remaining capacity at the moment it chooses (it is NOT a
+"no visibility" model) — what's absent is negotiation between guilds
+and any ability to anticipate choices later in the round. If no room
+is available, the guild gets no room this round (in the real event
+this is where a loan / missed quest would happen).
+
+This is a policy-specific baseline for one simple, fully-specified
+decentralized-choice rule, used only to check whether the scheduling
+concern in the written analysis is measurable. It is NOT a lower or
+upper bound on the real event: real players might do better via
+negotiation and visible queues, or worse via concurrent decisions and
+confusion under time pressure. It also only models the pure room/seat
+allocation mechanic in isolation — the real game entangles room choice
+with which Tier-2 item a guild holds, coin availability, loans, and
+the previous room's reward card, none of which is represented here.
 
 Run: python3 toy_scheduling_model.py
 """
