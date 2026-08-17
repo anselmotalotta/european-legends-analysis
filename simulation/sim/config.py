@@ -54,10 +54,13 @@ class GameConfig:
     # rather than dealt purely at random. ---
     coordinate_starting_hands: bool = True
 
-    # --- ASSUMPTION: analysis §2.7. Default: room winner picks their
-    # reward card first (as stated). The rubber-banding alternative
-    # (loser picks first) is an explicit design variant to compare. ---
-    winner_picks_reward_first: bool = True
+    # --- ASSUMPTION: analysis §2.7 / §8. Default: room winner picks their
+    # reward card first (as stated). A plain bool can't express the 3-way
+    # variant §8 actually lists (winner-first / loser-first / random) -
+    # "random" is also the source rule's own tie-break for which item is
+    # chosen (not who picks), so it's a real case, not hypothetical.
+    # One of "winner_first", "loser_first", "random". ---
+    reward_pick_order: str = "winner_first"
 
     # --- Not yet modeled at all (analysis §2.6): guild-special Tier-3
     # items (20-coin sell price) and unique per-guild quests are still

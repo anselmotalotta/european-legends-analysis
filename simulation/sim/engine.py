@@ -13,6 +13,32 @@ from . import rotation as R
 from .guild import Guild
 
 
+def resolve_room_winner(score_a, score_b, rng):
+    """Who actually won a room's combined quest score, tie broken
+    randomly (source doc: "In case of a tie the item is chosen
+    randomly"). Pulled out as a pure function per review r1/F2, which
+    found the inline version (`score_a >= score_b`) silently made guild_a
+    win every tie - and guild_a is whichever guild is listed first in
+    FIXED_ROTATION's tuples, not evenly distributed across guilds."""
+    if score_a > score_b:
+        return True
+    if score_b > score_a:
+        return False
+    return rng.random() < 0.5
+
+
+def resolve_pick_order(a_won, reward_pick_order, rng):
+    """Who picks their reward card first - a separate, configurable
+    question (analysis §2.7/§8) from who actually won the room."""
+    if reward_pick_order == "winner_first":
+        return a_won
+    if reward_pick_order == "loser_first":
+        return not a_won
+    if reward_pick_order == "random":
+        return rng.random() < 0.5
+    raise ValueError(f"unknown reward_pick_order: {reward_pick_order!r}")
+
+
 class GameResult:
     def __init__(self, guilds, config):
         self.guilds = guilds
@@ -88,10 +114,19 @@ class GameEngine:
         gb.coins += score_b
         gb.quest_coins_earned += score_b
 
+        # Reward pool excludes the room's Tier-2 prerequisite ("the one
+        # they paid") regardless of payment method - so a coin-paying
+        # guild is treated the same as an item-paying one here. Noted by
+        # review r1 as a second, unflagged reading of the same §4 item 2
+        # that coin_payment_grants_reward_card already flags explicitly;
+        # kept as-is (harmless per that review) rather than adding a
+        # second config flag for a very similar assumption.
         paid_item = I.ROOM_PREREQUISITE[room]
         pool = [t for t in I.TIER2 if t != paid_item]
-        winner_first = score_a >= score_b  # ties: A treated as "winner" for pick order, matches a coin flip
-        order = [(ga, method_a), (gb, method_b)] if winner_first else [(gb, method_b), (ga, method_a)]
+
+        a_won = resolve_room_winner(score_a, score_b, self.rng)
+        a_first = resolve_pick_order(a_won, self.config.reward_pick_order, self.rng)
+        order = [(ga, method_a), (gb, method_b)] if a_first else [(gb, method_b), (ga, method_a)]
 
         if self.config.shared_reward_pool:
             available = list(pool)
@@ -122,7 +157,15 @@ class GameEngine:
         # Crafting: Tier1->Tier2, then Tier2->Tier3, greedily where a
         # guild's policy says to (Tier1->2 is always worth it - it's a
         # pure conversion with no downside modeled here; Tier2->3 is
-        # policy-gated per analysis §2.2's shadow-value point).
+        # policy-gated per analysis §2.2's shadow-value point). Noted by
+        # review r1: converting Tier-1 unconditionally also converts away
+        # the Tier-1 surplus that would otherwise sit in inventory as
+        # tradeable stock - a second, quiet contributor (beyond the
+        # missing coin-purchase path) to why trade volume is low under
+        # rational play. Left unconditional for v1 since it's the
+        # economically correct move in isolation (2 coins of input yields
+        # 4 of output); worth revisiting if trade volume is investigated
+        # further.
         for guild in guilds.values():
             unvisited = self._unvisited_rooms(guild)
             changed = True
@@ -148,32 +191,65 @@ class GameEngine:
                             guild.add(product, 1)
                             changed = True
 
-        # Trading: one pass, random guild order, each seeks at most one trade.
+        # Trading: one pass, random guild order. Each guild tries an
+        # item-for-item swap first, then - if that doesn't clear - a
+        # coin purchase (source doc: "exchange items for coins or other
+        # items"; added per review r1/F3, which correctly noted a pure
+        # item-swap can't bridge a needed item's shadow value against a
+        # seller's lower liquidation valuation of it, but a coin
+        # side-payment can).
         order = list(guilds.keys())
         self.rng.shuffle(order)
         for name in order:
             guild = guilds[name]
             policy = self.policies[name]
             unvisited = self._unvisited_rooms(guild)
-            proposal = policy.seek_trade(guild, unvisited, self.config, self.rng)
-            if not proposal:
-                continue
-            wanted, offered = proposal
-            if not guild.has(offered):
-                continue
             partners = [n for n in order if n != name]
             self.rng.shuffle(partners)
+
+            traded = False
+            proposal = policy.seek_trade(guild, unvisited, self.config, self.rng)
+            if proposal:
+                wanted, offered = proposal
+                if guild.has(offered):
+                    for pname in partners:
+                        partner = guilds[pname]
+                        if not partner.has(wanted):
+                            continue
+                        partner_policy = self.policies[pname]
+                        partner_unvisited = self._unvisited_rooms(partner)
+                        if partner_policy.accept_trade(partner, offered, wanted, partner_unvisited, self.config, self.rng):
+                            guild.remove(offered, 1)
+                            partner.remove(wanted, 1)
+                            guild.add(wanted, 1)
+                            partner.add(offered, 1)
+                            guild.trade_count += 1
+                            partner.trade_count += 1
+                            guild.trade_partners.add(pname)
+                            partner.trade_partners.add(name)
+                            traded = True
+                            break
+
+            if traded:
+                continue
+
+            purchase = policy.seek_purchase(guild, unvisited, self.config, self.rng)
+            if not purchase:
+                continue
+            wanted, coins_offered = purchase
+            if guild.coins < coins_offered:
+                continue
             for pname in partners:
                 partner = guilds[pname]
                 if not partner.has(wanted):
                     continue
                 partner_policy = self.policies[pname]
                 partner_unvisited = self._unvisited_rooms(partner)
-                if partner_policy.accept_trade(partner, offered, wanted, partner_unvisited, self.config, self.rng):
-                    guild.remove(offered, 1)
+                if partner_policy.accept_purchase(partner, wanted, coins_offered, partner_unvisited, self.config, self.rng):
+                    guild.coins -= coins_offered
+                    partner.coins += coins_offered
                     partner.remove(wanted, 1)
                     guild.add(wanted, 1)
-                    partner.add(offered, 1)
                     guild.trade_count += 1
                     partner.trade_count += 1
                     guild.trade_partners.add(pname)

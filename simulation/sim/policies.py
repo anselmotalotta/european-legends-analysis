@@ -37,6 +37,19 @@ class AgentPolicy(ABC):
         """Whether to accept a proposed swap (I give item_they_want, get item_offered_to_me)."""
 
     @abstractmethod
+    def seek_purchase(self, guild, unvisited_rooms, config, rng):
+        """Buying with coins, not items (source doc: 'exchange items for
+        coins or other items' - found missing in review r1/F3, which noted
+        it's the one instrument that can bridge a needed item's shadow
+        value (up to 15) against what a seller who doesn't need it values
+        it at in liquidation (at most 14), a gap plain item-for-item
+        bartering can't cross. Returns (item_wanted, coins_offered) or None."""
+
+    @abstractmethod
+    def accept_purchase(self, guild, item_wanted, coins_offered, unvisited_rooms, config, rng):
+        """Whether to sell item_wanted for coins_offered."""
+
+    @abstractmethod
     def choose_reward_card(self, guild, available_cards, unvisited_rooms, config, rng):
         """Pick one card from the pool of available Tier-2 reward cards."""
 
@@ -87,6 +100,19 @@ class GreedyPolicy(AgentPolicy):
         my_gain = self.room_access_value(guild, item_offered_to_me, unvisited_rooms, config)
         return my_gain >= my_cost
 
+    def seek_purchase(self, guild, unvisited_rooms, config, rng):
+        needed_items = _unvisited_room_items(unvisited_rooms) - set(guild.inventory)
+        if not needed_items:
+            return None
+        price = config.room_coin_fallback_fee  # never worse than just paying the GM
+        if guild.coins < price:
+            return None
+        return (next(iter(needed_items)), price)
+
+    def accept_purchase(self, guild, item_wanted, coins_offered, unvisited_rooms, config, rng):
+        my_cost = self.room_access_value(guild, item_wanted, unvisited_rooms, config)
+        return coins_offered >= my_cost
+
     def choose_reward_card(self, guild, available_cards, unvisited_rooms, config, rng):
         needed = _unvisited_room_items(unvisited_rooms)
         for card in available_cards:
@@ -120,6 +146,16 @@ class CasualPolicy(AgentPolicy):
         return (want, offered)
 
     def accept_trade(self, guild, item_offered_to_me, item_they_want, unvisited_rooms, config, rng):
+        return rng.random() < 0.5
+
+    def seek_purchase(self, guild, unvisited_rooms, config, rng):
+        if rng.random() > 0.15 or guild.coins < 5:
+            return None
+        want = rng.choice(I.TIER2)
+        offer = rng.randint(5, min(guild.coins, config.room_coin_fallback_fee))
+        return (want, offer)
+
+    def accept_purchase(self, guild, item_wanted, coins_offered, unvisited_rooms, config, rng):
         return rng.random() < 0.5
 
     def choose_reward_card(self, guild, available_cards, unvisited_rooms, config, rng):

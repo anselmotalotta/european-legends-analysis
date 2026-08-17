@@ -21,9 +21,16 @@ def run_batch(config, policy_mix, n_trials, seed_start=0):
     return results
 
 
-def compare(base_config, variant_config, policy_mix, n_trials, label_base="baseline", label_variant="variant"):
-    base_results = run_batch(base_config, policy_mix, n_trials, seed_start=0)
-    variant_results = run_batch(variant_config, policy_mix, n_trials, seed_start=10_000)
+def compare(base_config, variant_config, policy_mix, n_trials, label_base="baseline", label_variant="variant", seed_start=0):
+    """Paired comparison using common random numbers: both arms see the same
+    seed for trial i, so the same skill draws, starting hands, and shuffle
+    order hit both configs. This isolates the design-change effect from
+    sampling noise (found missing in review r1/F1 - the two arms previously
+    ran on disjoint seed ranges, which let noise masquerade as signal; e.g.
+    an unpaired run showed a fully inverted specialty win-rate ranking that
+    vanished under pairing)."""
+    base_results = run_batch(base_config, policy_mix, n_trials, seed_start=seed_start)
+    variant_results = run_batch(variant_config, policy_mix, n_trials, seed_start=seed_start)
     return {
         label_base: summarize(base_results),
         label_variant: summarize(variant_results),
