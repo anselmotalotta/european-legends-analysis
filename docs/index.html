@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>European Legends — Balance &amp; Design Analysis</title>
+<style>
+  :root{
+    --bg:#faf6ef; --bg-alt:#f1ead9; --ink:#2a2117; --ink-soft:#5a4d3c;
+    --accent:#8a5a2b; --accent-soft:#c99a5b; --line:#dccfb3;
+    --card:#ffffff; --danger:#9a3324; --good:#2f6b3a;
+    --code-bg:#efe6d2;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#171310; --bg-alt:#1f1a15; --ink:#ece3d3; --ink-soft:#c7b89e;
+      --accent:#d9a35c; --accent-soft:#8a5a2b; --line:#3a2f22;
+      --card:#211b15; --danger:#e0725f; --good:#6fbf7a;
+      --code-bg:#241d15;
+    }
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.6;
+  }
+  .wrap{max-width:840px; margin:0 auto; padding:0 1.5rem 6rem;}
+  header.hero{
+    background:linear-gradient(180deg,var(--bg-alt),var(--bg));
+    border-bottom:1px solid var(--line);
+    padding:4rem 1.5rem 2.5rem;
+    text-align:center;
+  }
+  header.hero .eyebrow{
+    letter-spacing:.14em; text-transform:uppercase; font-size:.72rem;
+    color:var(--accent); font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;
+    font-weight:600; margin-bottom:.9rem;
+  }
+  header.hero h1{
+    font-size:2.1rem; margin:0 0 .6rem; max-width:640px; margin-inline:auto;
+    line-height:1.25;
+  }
+  header.hero p{
+    color:var(--ink-soft); max-width:560px; margin:0 auto; font-size:1.02rem;
+  }
+  nav.meta{
+    display:flex; gap:1.2rem; justify-content:center; flex-wrap:wrap;
+    margin-top:1.6rem; font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;
+    font-size:.82rem; color:var(--ink-soft);
+  }
+  nav.meta span{border:1px solid var(--line); padding:.3rem .7rem; border-radius:999px;}
+  .figs{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:1rem; margin:2.5rem 0;
+  }
+  .figs figure{margin:0; background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden;}
+  .figs img{width:100%; display:block;}
+  .figs figcaption{
+    font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;
+    font-size:.78rem; color:var(--ink-soft); padding:.6rem .8rem;
+  }
+  h2{
+    margin-top:3rem; padding-top:.2rem; font-size:1.5rem;
+    border-top:1px solid var(--line); padding-top:1.6rem;
+  }
+  h3{font-size:1.15rem; color:var(--accent); margin-top:2rem;}
+  p, li{color:var(--ink); font-size:1.02rem;}
+  strong{color:var(--ink); font-weight:700;}
+  a{color:var(--accent);}
+  .callout{
+    background:var(--card); border:1px solid var(--line); border-left:4px solid var(--accent);
+    border-radius:6px; padding:1rem 1.2rem; margin:1.2rem 0;
+    font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif; font-size:.95rem;
+  }
+  .callout.risk{border-left-color:var(--danger);}
+  .callout.good{border-left-color:var(--good);}
+  table{
+    width:100%; border-collapse:collapse; margin:1.4rem 0;
+    font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif; font-size:.9rem;
+  }
+  th,td{border:1px solid var(--line); padding:.55rem .7rem; text-align:left;}
+  th{background:var(--bg-alt); font-weight:700;}
+  ol.priority li{margin-bottom:.6rem;}
+  .badge{
+    display:inline-block; font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;
+    font-size:.68rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+    padding:.15rem .5rem; border-radius:5px; margin-right:.5rem; vertical-align:middle;
+  }
+  .badge.risk{background:color-mix(in srgb, var(--danger) 18%, transparent); color:var(--danger);}
+  .badge.balance{background:color-mix(in srgb, var(--accent) 20%, transparent); color:var(--accent);}
+  .badge.ok{background:color-mix(in srgb, var(--good) 18%, transparent); color:var(--good);}
+  footer{
+    text-align:center; margin-top:4rem; padding-top:2rem; border-top:1px solid var(--line);
+    font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif; font-size:.82rem; color:var(--ink-soft);
+  }
+  code{background:var(--code-bg); padding:.1rem .35rem; border-radius:4px; font-size:.9em;}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="eyebrow">EIB Group Charity Game &middot; 17 September 2026</div>
+  <h1>European Legends — Office Adventure Game</h1>
+  <p>An independent balance &amp; design review of the ruleset, ahead of an economic simulation of the trading and crafting system.</p>
+  <nav class="meta">
+    <span>Ruleset v.16&nbsp;Aug&nbsp;2026</span>
+    <span>8 guilds &middot; 40 players</span>
+    <span>100-minute economy</span>
+  </nav>
+</header>
+
+<div class="wrap">
+
+  <div class="figs">
+    <figure><img src="assets/items-and-tiers.jpg" alt="Items grouped by tier"><figcaption>Fig. 1 — Item tiers</figcaption></figure>
+    <figure><img src="assets/conversion-chart.png" alt="Conversion chart"><figcaption>Fig. 2 — Conversion chart</figcaption></figure>
+    <figure><img src="assets/guilds.jpg" alt="The eight guilds"><figcaption>Fig. 3 — The eight guilds</figcaption></figure>
+  </div>
+
+  <p>This is a written pass only — no code has been run yet. Findings are grouped by severity/type: structural risks, economic balance, timing, rules gaps, operational risk, and what's already working well.</p>
+
+  <h2 id="s1"><span class="badge risk">Risk</span>1. Room scheduling has no coordination mechanism</h2>
+  <p>This is the single largest risk in the current draft.</p>
+  <p>Each round, 4 activity rooms × 2 guild slots = exactly 8 slots — one for each guild. Over 4 rounds that's 32 slots, precisely enough for all 8 guilds to visit all 4 rooms once each. <strong>But nothing in the rules guarantees this ideal matching actually happens.</strong> Guilds choose (or race for) rooms themselves each round, constrained only by "two other guilds already paid their participation fee" locking a room. With 8 semi-informed teams converging on the Guildhall simultaneously every 10 minutes, decentralized self-scheduling can easily produce collisions — one guild shut out of a room it still needs, in every remaining round.</p>
+  <div class="callout risk"><strong>Consequence:</strong> a guild can end the game having visited only 2–3 of the 4 rooms, permanently missing ~20–25 coins of quest income per skipped room, on top of being funneled into avoidable loans (§2). This is the default outcome of unmanaged parallel demand on a hard 8-slots/round cap, not a rare edge case.</div>
+  <h3>Recommendation</h3>
+  <p><strong>Pre-assigned rotation (safest):</strong> print each guild a fixed 4-round room order on their team sheet, designed as a Latin square so every room has exactly 2 guilds every round, guaranteed. This removes the coordination problem entirely and costs nothing to implement. An alternative — a visible booking board at the Guildhall — is lower design effort but reintroduces the race/coordination risk.</p>
+
+  <h2 id="s2"><span class="badge balance">Balance</span>2. Economic balance</h2>
+
+  <h3>2.1 Round-1 starting kits and the recipe graph</h3>
+  <p>The four Tier-1 materials form a 4-cycle in the conversion chart: <strong>Flax–Wax → Candle, Wax–Charcoal → Dye, Charcoal–Saltpetre → Black Powder, Saltpetre–Flax → Cloth.</strong> Diagonal pairs (Flax+Charcoal, Wax+Saltpetre) don't convert to anything.</p>
+  <p>Each guild starts with 3 random <em>different</em> Tier-1 items — missing exactly one of the four types. Removing one node from a 4-cycle always leaves a 3-node path with a shared middle item, so <strong>a guild's starting hand can always craft exactly one Tier-2 item — never zero, never two.</strong> A nice, deliberate-feeling property, worth confirming it was intentional.</p>
+  <p>The catch: which Tier-2 item a guild <em>can</em> make depends on which Tier-1 type is missing from their random deal. If the deal is purely random per guild, there's no guarantee the 8 guilds split evenly across the 4 possible outcomes — e.g. 5 guilds able to make only Cloth and 1 able to make Black Powder, which starves Room 3 and overloads Room 1 the moment §1's dynamics kick in.</p>
+  <div class="callout good"><strong>Recommendation:</strong> don't leave the missing item to pure chance. Deliberately deal starting kits so exactly 2 guilds are missing each Tier-1 type — same "feels random" experience for players, but Round-1 room demand then exactly matches Room-1 capacity, and it makes the Latin-square rotation in §1 trivial to design consistently.</div>
+
+  <h3>2.2 The loan mechanic can snowball without a catch-up path</h3>
+  <p>A guild that can't pay a room's entry fee and lacks 15 coins takes a GM loan for the shortfall, repaid at <strong>double</strong> value at game end. Reasonable as a safety valve, but it has no rubber-banding: a guild behind on luck (§2.1, §1) needs loans more often in later rounds too, and each loan digs deeper — a round-4 loan costs the same 30 coins as a round-1 loan, but leaves no time to earn it back. A guild can be mathematically out of contention by round 2 without any player mistake.</p>
+  <p>That matters more here than in a purely competitive game — a team locked out of winning by minute 30 (of 100) with no misplay of their own tends to check out, undercutting the stated team-building/entertainment purpose.</p>
+  <div class="callout"><strong>Recommendation:</strong> cap total loan interest (e.g. double only on the first loan, flat on subsequent ones), or let each guild's unique quest (15–20 coins) function as an explicit catch-up lever regardless of Guildhall standing.</div>
+
+  <h3>2.3 The crafting economy rewards conversion — good design</h3>
+  <p>Selling prices (Tier 1 = 1, Tier 2 = 4, Tier 3 = 14, guild special Tier 3 = 20) mean two Tier-1 items (2 coins raw) into one Tier-2 (4 coins) is a "free" 100% value gain, and two Tier-2 into one Tier-3 (8 → 14) is another +75%. This is the right incentive shape: crafting is worth doing whenever a guild has spare time and matching items. It only pays off in practice if the chain is reachable within 100 minutes — the simulation should confirm that.</p>
+
+  <h3>2.4 Guild special items and unique quests are marked "in elaboration"</h3>
+  <p>The 20-coin guild-special-item bonus and each guild's unique 15–20 coin quest are central to both balance (§2.2 leans on them for catch-up) and identity, but aren't defined yet. Worth finishing before the simulation, since results will shift once guild-specific asymmetries are added.</p>
+
+  <h2 id="s3"><span class="badge ok">Timing</span>3. Timing</h2>
+  <p>Per-room timing mostly works: each room's two sub-quests run in parallel (guild splits in half), bounded by the <em>longer</em> sub-quest.</p>
+  <table>
+    <thead><tr><th>Room</th><th>Longer sub-quest</th><th>Bound</th><th>Buffer in 10 min</th></tr></thead>
+    <tbody>
+      <tr><td>1 – Cloth Room</td><td>Cartographer's Workshop (strict)</td><td>7 min</td><td>~3 min</td></tr>
+      <tr><td>2 – Dye Room</td><td>Hall of Languages (est.)</td><td>~6 min</td><td>~4 min</td></tr>
+      <tr><td>3 – Black Powder Room</td><td>Architect's Challenge (strict)</td><td>7 min</td><td>~3 min</td></tr>
+      <tr><td>4 – Candle Room</td><td>Scribe's Observation</td><td>7 min</td><td>~3 min</td></tr>
+    </tbody>
+  </table>
+  <p>The 3-minute buffers are tight but workable for fee payment, item selection, and in-room movement — worth confirming room-to-room transit doesn't also have to fit inside them. The bigger timing risk isn't inside a room, it's at the Guildhall (§5).</p>
+
+  <h2 id="s4"><span class="badge balance">Gaps</span>4. Rules ambiguities worth resolving first</h2>
+  <ul>
+    <li><strong>Room assignment mechanism</strong> — free choice/race, GM-directed, or fixed rotation? The current text implies racing, which drives §1.</li>
+    <li><strong>Where/when can peer-to-peer trading happen?</strong> Crafting is explicitly Guildhall-only; general trades aren't location-restricted in the text — mid-activity-room, or only at trading breaks?</li>
+    <li><strong>Common Quest 3B (Hall of Legends)</strong> doesn't state its clue count, unlike the other four "identify 10 things" quests.</li>
+    <li><strong>Does a loan grant free entry</strong>, or just cover the coin shortfall — is the fee coins-only once converted to a loan?</li>
+    <li><strong>Fallback for a guild that never visits a room</strong> — any end-game recourse, or is that quest income simply lost?</li>
+  </ul>
+
+  <h2 id="s5"><span class="badge risk">Ops</span>5. The Guildhall is a single point of congestion</h2>
+  <p>Conversions, quest-fee payments, and loans all funnel through the Guildhall/Game Master. Peer-to-peer trades appear self-administered, which helps — but crafting and fee payment do not. With up to 8 guilds hitting the Guildhall at the start of every 10-minute break, and only ~10 helpers total (most likely staffing the 4×2 activity sub-quest stations), there may be only 1–2 people free to process 8 teams in 10 minutes.</p>
+  <div class="callout"><strong>Recommendation:</strong> staff 2–3 helpers at the Guildhall during trading breaks, and consider a self-service swap table for straightforward conversions (2 cards for 1, no GM needed) so the GM only handles loans and disputes.</div>
+
+  <h2 id="s6"><span class="badge ok">Working well</span>6. What's working well</h2>
+  <ul>
+    <li>The 4-cycle recipe graph forces genuine cross-guild trading by design — directly serves the "networking" goal.</li>
+    <li>The tier price ladder makes crafting strictly worth doing without being mandatory.</li>
+    <li>Per-room quest timing comfortably fits the 10-minute slots when run in parallel.</li>
+    <li>Room-level win bonus / tie handling (5 coins, or 2/2 on a tie) is simple with no weird edge cases.</li>
+    <li>Charity ticket design (fixed €20, no refund) is clean and doesn't interact with the in-game economy.</li>
+  </ul>
+
+  <h2 id="s7">7. Priority order for fixes</h2>
+  <ol class="priority">
+    <li><strong>Fix room scheduling</strong> (§1) — highest risk to the event; cheapest fix (pre-printed rotation).</li>
+    <li><strong>Control starting-kit distribution</strong> (§2.1) — free fix, also makes #1 easier.</li>
+    <li><strong>Decide the loan catch-up question</strong> (§2.2) — affects whether a losing guild still has fun for the last 30 minutes.</li>
+    <li><strong>Resolve open ambiguities</strong> (§4) before the simulation is built.</li>
+    <li><strong>Guildhall staffing</strong> (§5) — operational, decide before the event.</li>
+  </ol>
+
+  <footer>
+    Next: an agent-based simulation of guild economies across the 100-minute timeline, to quantify §1–§2 numerically.
+    &middot; <a href="../analysis/game-balance-analysis.md">Markdown version</a>
+  </footer>
+
+</div>
+</body>
+</html>
