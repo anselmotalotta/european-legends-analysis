@@ -131,7 +131,7 @@
 <body>
 
 <header class="hero">
-  <div class="eyebrow">EIB Group Charity Game &middot; 17 September 2026 &middot; Revision 4</div>
+  <div class="eyebrow">EIB Group Charity Game &middot; 17 September 2026 &middot; Revision 5</div>
   <h1>European Legends — Office Adventure Game</h1>
   <p>An independent balance &amp; design review of the ruleset, through three rounds of independent review — ahead of an economic simulation of the trading and crafting system.</p>
   <nav class="meta">
@@ -153,7 +153,15 @@
     <h2>0. What changed, across three review rounds</h2>
     <p><strong>Revision 2</strong> fixed real errors found in the first draft: a wrong claim about starting-hand recipes, overstated loan math, a sale-price-vs-strategic-value conflation, a missed scoring contradiction, and an unmeasured scheduling claim (later backed by a toy model).</p>
     <p><strong>Revision 3</strong> added two things a further review caught as genuinely missing from revision 2: the winner's-first-pick and +5-bonus snowball mechanisms (§2.7), and confidence labels (<code>[Established]</code> / <code>[Derived]</code> / <code>[Risk]</code> / <code>[Open]</code>) throughout, so claims don't read as more settled than they are.</p>
-    <p><strong>Revision 4</strong> fixes a real, high-priority flaw a third review found — this time against the actual current document:</p>
+    <p><strong>Revision 4</strong> fixed a real, high-priority flaw a third review found — the corrected rotation, toy-model description, and several precision issues.</p>
+    <p><strong>Revision 5</strong> fixes a fourth review's findings — this one caught a claim in revision 4 that was itself checked and found false, not just imprecise:</p>
+    <ul>
+      <li><strong>§1's "spans both other specialties" claim was wrong</strong>, verified computationally — every guild in the corrected rotation meets only 2 of the other 3 specialty-pairs. Full coverage is reachable only by letting each guild meet its own twin exactly once — a real tradeoff, not adopted here — so the false claim is corrected rather than the schedule redesigned again.</li>
+      <li><strong>§2.3's coin-admission accounting mixed up cash outflow (−15) with net wealth change (−11)</strong> — corrected.</li>
+      <li><strong>§2.5 overstated that a reward-pool collision makes trading "necessary"</strong> — softened to "creates pressure to," since a guild could craft the item itself instead.</li>
+      <li><strong>"Verified by exhaustive search" overstated the rotation script</strong> — it stops at the first valid schedule and checks that one, not an enumeration of all schedules. Corrected in the text and the script's own docstring.</li>
+      <li><strong>§8's "rational vs. casual" agents needed concrete specification</strong> — added explicit requirements for craft choice, room-access valuation, trade initiation/acceptance, inventory reasoning, and reward-card selection.</li>
+    </ul>
     <ol>
       <li><strong>The §1 rotation was a genuine design mistake.</strong> It solved room capacity but paired every guild with the <em>same</em> opponent all 4 rounds (Lisbon always vs. Bursa, etc.) — bad for the event's networking purpose, and it let the winner's-first-pick snowball (§2.7) concentrate against one weaker guild all game. Replaced with a schedule — verified in code — where every guild still visits all 4 rooms once but faces a <strong>different opponent every round, with zero repeats</strong>.</li>
       <li><strong>The toy scheduling model's description was imprecise</strong> — it does not model "no visibility"; guilds have full knowledge of remaining room capacity when choosing. The 38.2% result is unchanged; only its description and interpretation were corrected.</li>
@@ -175,7 +183,7 @@
   <p><span class="tag">Derived — toy model</span>(method in §7): under a policy where guilds pick, one at a time in random order, uniformly among rooms they haven't visited that still have a free slot — full knowledge of current availability, but no negotiation or anticipation — only <strong>38% of games</strong> finish with every guild visiting every room. This is <strong>not a bound</strong> on the real event in either direction (real players might do better via negotiation, or worse from concurrent decisions and imperfect queue visibility) — it's evidence that an allocation problem exists under this policy, not an estimate of the event's actual odds. An independent reviewer's own quick check landed within 1 point (38.4%).</p>
 
   <div class="callout fix">
-    <strong>Recommendation — a rotation that solves capacity <em>and</em> keeps opponents varied:</strong> a first version of this table guaranteed capacity but paired every guild against the same opponent all 4 rounds (caught in review) — bad for networking, and it let the winner's-first-pick advantage (§2.7) concentrate against one guild. This corrected table, verified by exhaustive search in <a href="https://github.com/anselmotalotta/european-legends-analysis/blob/main/simulation/rotation_schedule.py">simulation/rotation_schedule.py</a>, keeps every guild visiting each room exactly once while guaranteeing <strong>no guild ever faces the same opponent twice, and no guild ever faces its own same-specialty twin</strong>:
+    <strong>Recommendation — a rotation that solves capacity <em>and</em> keeps opponents varied:</strong> a first version of this table guaranteed capacity but paired every guild against the same opponent all 4 rounds (caught in review) — bad for networking, and it let the winner's-first-pick advantage (§2.7) concentrate against one guild. This corrected table, found by constraint search and programmatically verified in <a href="https://github.com/anselmotalotta/european-legends-analysis/blob/main/simulation/rotation_schedule.py">simulation/rotation_schedule.py</a>, keeps every guild visiting each room exactly once while guaranteeing <strong>no guild ever faces the same opponent twice, and no guild ever faces its own same-specialty twin</strong>:
     <div class="table-scroll">
     <table>
       <thead><tr><th>Round</th><th>Room 1 (Cloth)</th><th>Room 2 (Dye)</th><th>Room 3 (Black Powder)</th><th>Room 4 (Candle)</th></tr></thead>
@@ -187,7 +195,7 @@
       </tbody>
     </table>
     </div>
-    <p style="margin-bottom:0">Every guild's 4 opponents are 4 distinct guilds, and — as a side effect of avoiding twin-pairings — every guild's opponents span both other specialties, not just its own, which also helps §2.5's "does trading happen" question by spreading exposure to other guilds' inventories. This table is also the input §2.1's starting-hand fix needs.</p>
+    <p style="margin-bottom:0">Every guild's 4 opponents are 4 distinct guilds. <strong>Correction:</strong> an earlier version of this text claimed those opponents "span both other production specialties" — checked computationally, that's false: every guild here meets only 2 of the 3 non-own specialty-pairs (e.g. Lisbon meets flax and charcoal guilds, never saltpetre). Full 3-specialty coverage is only reachable by letting each guild meet its own twin exactly once — a real design option, not adopted here. What this table does guarantee: room-once-per-guild, no repeated opponent, no twin-pairing at all. This table is also the input §2.1's starting-hand fix needs.</p>
   </div>
 
   <h2 id="s2"><span class="badge balance">Balance</span>2. Economic balance</h2>
@@ -232,7 +240,7 @@
   <p>After completing a room, guilds <em>exchange</em> their entry item: <em>"choose a new tier 2 item, different than the one they paid to participate."</em></p>
   <ul>
     <li><strong>Item admission:</strong> surrender a 4-value card → receive a different 4-value card. Net <em>liquidation</em> value unchanged (4→4), plus quest coins and possibly the 5-coin win bonus.</li>
-    <li><strong>Coin admission:</strong> surrender 15 real coins → (apparently) receive the same reward card. Net loss ≈ 15 coins for the same reward.</li>
+    <li><strong>Coin admission:</strong> surrender 15 real coins → (apparently) receive the same reward card worth 4 in liquidation. Cash outflow is 15, but net wealth change is <strong>−11, not −15</strong>.</li>
   </ul>
   <p>That's a large asymmetry — <strong>holding the correct Tier-2 prerequisite may be one of the strongest strategic assets in the game.</strong> Worth being precise though: "net liquidation loss ≈ 0" is true in sale-price terms, but the strategic swing can be large either way — getting exactly the card you need next is a big win; being forced into one you don't (a reward-pool collision, §2.5) is a real loss even though the liquidation math nets to zero.</p>
   <p>Two open questions: does a coin-paying guild also receive a reward card? And is the "3 available items" reward one pool shared by both guilds with cards removed as each picks, or does each guild see its own separate 3? Both added to §4.</p>
@@ -244,7 +252,7 @@
   <h3>2.5 The central open question: does this economy actually require trading?</h3>
   <p><span class="tag">Open</span>This cuts against the first draft's own claim that the recipe cycle "forces genuine cross-guild trading."</p>
   <p><span class="tag">Derived</span>A guild that never trades can craft one Tier-2 item from its starting hand, pay into Room 1, and receive a <em>different</em> Tier-2 as reward. If that reward matches an unvisited room, it can chain straight through all four rooms on its own inventory plus its own Tier-1 production — no other guild required.</p>
-  <p>What can break the chain: <strong>each room seats 2 guilds sharing one reward pool of 3 cards</strong> (an interpretation — see §4), winner picks first. If both guilds want the same next-room item, the loser is forced elsewhere — exactly where trading (or a coin fallback) becomes necessary.</p>
+  <p>What can break the chain: <strong>each room seats 2 guilds sharing one reward pool of 3 cards</strong> (an interpretation — see §4), winner picks first. If both guilds want the same next-room item, the loser is forced elsewhere — creating pressure to trade or fall back to a coin payment, though not strictly requiring it, since the guild could instead craft the item itself later.</p>
   <div class="callout risk">Since networking is a stated purpose of the event, <strong>whether the rules create enough scarcity to force trading — or whether solo chaining can win outright — should be one of the first things the simulation measures</strong>, ahead of tuning loan interest or Tier-3 prices.</div>
 
   <h3>2.6 Guild special items and unique quests are marked "in elaboration"</h3>
@@ -333,6 +341,7 @@
     <li><strong>Compounding of the three snowball mechanisms (§2.7)</strong> — loans, winner's-first-pick, +5 bonus — measured together: how much of final-score spread traces to an early lead vs. genuinely independent luck later.</li>
     <li><strong>Opponent and interaction diversity</strong> — distinct opposing guilds encountered, distinct trading partners, cross-specialty interactions. "Number of trades" alone doesn't measure networking — ten trades with one guild is a very different outcome from six spread across six guilds.</li>
   </ol>
+  <div class="callout risk"><strong>Before implementation: item 9 needs concrete agent behavior specs, not just a label.</strong> Without pinning down actual decision rules, a full simulator can produce precise-looking output that's really just an artifact of whatever behavior got implemented. Each agent policy needs explicit rules for: <strong>craft choice</strong> (when to convert vs. hold, §2.2), <strong>room-access valuation</strong> (holding an item for a room vs. liquidating it), <strong>trade initiation/acceptance</strong> (what price an agent offers or accepts), <strong>reasoning about other guilds' inventories</strong>, and <strong>reward-card selection</strong> (§2.3). "Rational" and "casual" should be two different concrete implementations of all five, not two labels on the same logic.</div>
   <h4>Design variants to compare</h4>
   <ul>
     <li>Fixed room rotation with repeated opponents (the original, flawed §1 table) vs. the corrected varied-opponent rotation vs. free-choice scheduling — should make the opponent-repetition cost directly visible in the numbers, not just argued from principle.</li>

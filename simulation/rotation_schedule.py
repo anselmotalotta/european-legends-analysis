@@ -2,14 +2,35 @@
 Finds and verifies the fixed room/opponent rotation recommended in §1
 of the analysis.
 
-Constraints (all satisfied simultaneously, verified below rather than
-eyeballed — an earlier draft of this rotation satisfied only the first
-two and was caught by review):
+Constraints (all satisfied simultaneously by the schedule this finds,
+programmatically checked in verify() below rather than eyeballed - an
+earlier draft of this rotation satisfied only the first two and was
+caught by review):
   1. 8 guilds, 4 rooms, 4 rounds, capacity 2 guilds/room/round.
   2. Every guild visits every room exactly once across the 4 rounds.
   3. Every guild faces a different opponent every round (no repeats).
   4. No guild ever faces its own same-Tier-1-specialty "twin"
      (Lisbon/Bursa, Stockholm/Ghent, Gdansk/Venice, Prague/Vienna).
+
+NOTE on what "verified" means here: search() is a depth-first
+constraint search that returns the FIRST schedule it finds satisfying
+constraints 1-4 (it does not enumerate every possible valid schedule).
+That one schedule is then checked exhaustively by verify() below. This
+is "found by constraint search and programmatically verified", not
+"verified by exhaustive search over all schedules" - a distinction an
+earlier draft of the analysis blurred.
+
+KNOWN LIMITATION (flagged by review, not yet acted on): this schedule
+does NOT guarantee each guild meets all 3 non-own Tier-1 specialties
+among its 4 opponents - it only guarantees 4 distinct opponents and no
+twin-pairing. In fact no schedule can satisfy constraints 1-4 AND full
+3-specialty coverage simultaneously while ALSO forbidding twin-pairing
+entirely; full 3-specialty coverage is only reachable by allowing each
+guild to meet its own twin exactly once (using one of its 4 opponent
+slots on the twin, leaving exactly one slot per other specialty) -
+verified separately, not built into this script. See analysis §1 for
+the resulting correction to what this table's opponent diversity does
+and doesn't guarantee.
 
 Run: python3 rotation_schedule.py
 """
