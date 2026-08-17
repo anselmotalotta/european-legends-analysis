@@ -1,0 +1,231 @@
+"""
+Game engine: runs one simulated game end-to-end. Deliberately scoped
+per the analysis's guardrail to keep the first version small - models
+the core economy, room access, trading, rewards, loans, and scoring
+cleanly, WITHOUT guild-special Tier-3 items or unique per-guild quests
+(analysis §2.6 - still "in elaboration" in the source).
+"""
+import random
+
+from . import items as I
+from . import quests as Q
+from . import rotation as R
+from .guild import Guild
+
+
+class GameResult:
+    def __init__(self, guilds, config):
+        self.guilds = guilds
+        self.config = config
+
+    def scores(self):
+        return {g.name: g.final_score(I.SELL_PRICE) for g in self.guilds.values()}
+
+
+class GameEngine:
+    def __init__(self, config, policy_assignment, seed=None):
+        """policy_assignment: dict guild_name -> AgentPolicy instance."""
+        self.config = config
+        self.policies = policy_assignment
+        self.rng = random.Random(seed)
+
+    def _new_guild(self, name):
+        return Guild(name=name, specialty=self.config.guild_specialty[name],
+                     coins=self.config.starting_coins)
+
+    def _deal_starting_hand(self, guild):
+        if self.config.coordinate_starting_hands and self.config.use_fixed_rotation:
+            missing = R.COORDINATED_MISSING_MATERIAL[guild.name]
+        else:
+            missing = self.rng.choice(I.TIER1)
+        for t in I.TIER1:
+            if t != missing:
+                guild.add(t, 1)
+        return missing
+
+    def _craft_round1(self, guild, missing):
+        options = I.tier1_options(missing)
+        policy = self.policies[guild.name]
+        chosen = policy.choose_round1_craft(guild, options, self.rng)
+        a, b = [pair for pair in I.TIER1_RECIPES if I.TIER1_RECIPES[pair] == chosen][0]
+        guild.remove(a, 1)
+        guild.remove(b, 1)
+        guild.add(chosen, 1)
+
+    def _unvisited_rooms(self, guild):
+        return [f"Room{i}" for i in range(1, self.config.n_rooms + 1)
+                if f"Room{i}" not in guild.rooms_visited]
+
+    def _pay_room_fee(self, guild, room):
+        needed = I.ROOM_PREREQUISITE[room]
+        if guild.has(needed):
+            guild.remove(needed, 1)
+            return "item"
+        fee = self.config.room_coin_fallback_fee
+        if guild.coins >= fee:
+            guild.coins -= fee
+        else:
+            shortfall = fee - guild.coins
+            guild.coins = 0
+            guild.take_loan(shortfall, self.config.loan_interest_multiplier)
+        return "coin"
+
+    def _run_room(self, round_index, room, guild_a_name, guild_b_name, guilds):
+        ga, gb = guilds[guild_a_name], guilds[guild_b_name]
+        ga.rooms_visited.add(room)
+        gb.rooms_visited.add(room)
+        ga.opponents_faced.append(gb.name)
+        gb.opponents_faced.append(ga.name)
+
+        method_a = self._pay_room_fee(ga, room)
+        method_b = self._pay_room_fee(gb, room)
+
+        skill_a, skill_b = Q.draw_skill(self.rng), Q.draw_skill(self.rng)
+        score_a, score_b = Q.score_room(room, ga, gb, skill_a, skill_b, self.rng,
+                                         self.config.room_win_bonus, self.config.room_tie_bonus)
+        ga.coins += score_a
+        ga.quest_coins_earned += score_a
+        gb.coins += score_b
+        gb.quest_coins_earned += score_b
+
+        paid_item = I.ROOM_PREREQUISITE[room]
+        pool = [t for t in I.TIER2 if t != paid_item]
+        winner_first = score_a >= score_b  # ties: A treated as "winner" for pick order, matches a coin flip
+        order = [(ga, method_a), (gb, method_b)] if winner_first else [(gb, method_b), (ga, method_a)]
+
+        if self.config.shared_reward_pool:
+            available = list(pool)
+            for guild, method, in order:
+                if method == "coin" and not self.config.coin_payment_grants_reward_card:
+                    continue
+                if not available:
+                    continue
+                policy = self.policies[guild.name]
+                card = policy.choose_reward_card(guild, available, self._unvisited_rooms(guild), self.config, self.rng)
+                available.remove(card)
+                guild.add(card, 1)
+        else:
+            for guild, method in order:
+                if method == "coin" and not self.config.coin_payment_grants_reward_card:
+                    continue
+                policy = self.policies[guild.name]
+                card = policy.choose_reward_card(guild, list(pool), self._unvisited_rooms(guild), self.config, self.rng)
+                guild.add(card, 1)
+
+    def _craft_and_trade(self, guilds, allow_production, break_index):
+        # Production
+        if allow_production:
+            qty = self.config.production_per_break[break_index]
+            for guild in guilds.values():
+                guild.add(guild.specialty, qty)
+
+        # Crafting: Tier1->Tier2, then Tier2->Tier3, greedily where a
+        # guild's policy says to (Tier1->2 is always worth it - it's a
+        # pure conversion with no downside modeled here; Tier2->3 is
+        # policy-gated per analysis §2.2's shadow-value point).
+        for guild in guilds.values():
+            unvisited = self._unvisited_rooms(guild)
+            changed = True
+            while changed:
+                changed = False
+                for pair, product in I.TIER1_RECIPES.items():
+                    a, b = tuple(pair)
+                    if guild.has(a) and guild.has(b):
+                        guild.remove(a, 1)
+                        guild.remove(b, 1)
+                        guild.add(product, 1)
+                        changed = True
+            policy = self.policies[guild.name]
+            changed = True
+            while changed:
+                changed = False
+                for pair, product in I.TIER2_RECIPES.items():
+                    a, b = tuple(pair)
+                    if guild.has(a) and guild.has(b):
+                        if policy.should_craft_up(guild, a, b, unvisited, self.config):
+                            guild.remove(a, 1)
+                            guild.remove(b, 1)
+                            guild.add(product, 1)
+                            changed = True
+
+        # Trading: one pass, random guild order, each seeks at most one trade.
+        order = list(guilds.keys())
+        self.rng.shuffle(order)
+        for name in order:
+            guild = guilds[name]
+            policy = self.policies[name]
+            unvisited = self._unvisited_rooms(guild)
+            proposal = policy.seek_trade(guild, unvisited, self.config, self.rng)
+            if not proposal:
+                continue
+            wanted, offered = proposal
+            if not guild.has(offered):
+                continue
+            partners = [n for n in order if n != name]
+            self.rng.shuffle(partners)
+            for pname in partners:
+                partner = guilds[pname]
+                if not partner.has(wanted):
+                    continue
+                partner_policy = self.policies[pname]
+                partner_unvisited = self._unvisited_rooms(partner)
+                if partner_policy.accept_trade(partner, offered, wanted, partner_unvisited, self.config, self.rng):
+                    guild.remove(offered, 1)
+                    partner.remove(wanted, 1)
+                    guild.add(wanted, 1)
+                    partner.add(offered, 1)
+                    guild.trade_count += 1
+                    partner.trade_count += 1
+                    guild.trade_partners.add(pname)
+                    partner.trade_partners.add(name)
+                    break
+
+    def _assign_rooms_free_choice(self, round_index, guilds):
+        """Free-choice scheduling variant: reuses the toy-scheduling-model
+        policy (random order, pick uniformly among unvisited rooms with a
+        free slot) so it's directly comparable to simulation/toy_scheduling_model.py."""
+        capacity = {f"Room{i}": 2 for i in range(1, self.config.n_rooms + 1)}
+        order = list(guilds.keys())
+        self.rng.shuffle(order)
+        assignment = {}
+        pending = []
+        for name in order:
+            guild = guilds[name]
+            eligible = [r for r, cap in capacity.items() if cap > 0 and r not in guild.rooms_visited]
+            if not eligible:
+                continue
+            room = self.rng.choice(eligible)
+            capacity[room] -= 1
+            pending.append((room, name))
+        by_room = {}
+        for room, name in pending:
+            by_room.setdefault(room, []).append(name)
+        pairs = []
+        for room, names in by_room.items():
+            if len(names) == 2:
+                pairs.append((room, names[0], names[1]))
+            # a room with only 1 guild that round has no opponent - skip
+            # (matches "two other guilds already paid" lockout in the rules)
+        return pairs
+
+    def run(self):
+        guilds = {name: self._new_guild(name) for name in self.config.guild_names}
+        missing = {name: self._deal_starting_hand(g) for name, g in guilds.items()}
+        for name, g in guilds.items():
+            self._craft_round1(g, missing[name])
+
+        for round_index in range(self.config.n_rounds):
+            if self.config.use_fixed_rotation:
+                pairs = [(room, a, b) for room, (a, b) in R.FIXED_ROTATION[round_index].items()]
+            else:
+                pairs = self._assign_rooms_free_choice(round_index, guilds)
+            for room, a, b in pairs:
+                self._run_room(round_index, room, a, b, guilds)
+
+            if round_index < 3:
+                self._craft_and_trade(guilds, allow_production=True, break_index=round_index)
+
+        # Final trading window: no production, one more craft/trade pass.
+        self._craft_and_trade(guilds, allow_production=False, break_index=None)
+
+        return GameResult(guilds, self.config)
