@@ -1,23 +1,48 @@
-# European Legends — Office Adventure Game: Analysis
+# European Legends — Office Adventure Game
 
-An independent review of the ruleset for *European Legends Office Adventure Game*, a charity team-building game being run for the EIB Group on 17 September 2026 (8 guilds, up to 40 players, ~100-minute trading/crafting/quest economy).
+A charity team-building adventure game for the EIB Group, played by 8
+guilds of 5 players over a 100-minute event on 17 September 2026.
+Guilds produce and trade raw materials, craft them into more valuable
+goods, and compete in four themed activity rooms — music, art,
+history, riddles — to raise money for charity and finish with the
+most coins.
 
-This repo is a working companion to the original ruleset, not a replacement for it — it doesn't reproduce quest content, only the structural/economic mechanics needed for analysis.
+## The rules
 
-## Contents
+**[Read the rules](analysis/corrected-ruleset-v2.md)** — everything
+needed to run the event: setup, the 100-minute schedule, the guilds,
+the trading/crafting economy, the four activity rooms and their
+quests, and scoring. Also available as a
+[Word document](analysis/corrected-ruleset-v2.docx) if that's easier
+to edit or print.
 
-- **[Written balance & design analysis](analysis/game-balance-analysis.md)** — now on revision 5, through four rounds of independent review (see §0 of the analysis for the full changelog). Also available as a [styled page](https://anselmotalotta.github.io/european-legends-analysis/).
-- **`simulation/toy_scheduling_model.py`** — a small Monte Carlo model backing up the room-scheduling risk in §1/§7 of the analysis with actual numbers, not just assertion. Not the full economic simulation.
-- **`simulation/rotation_schedule.py`** — finds and verifies the fixed room/opponent rotation recommended in §1 (capacity-correct, no repeated opponents, no same-specialty pairings) by constraint search, so the table in the analysis is reproducible rather than hand-typed. Does **not** guarantee full 3-specialty opponent coverage — see the docstring and analysis §1 for why.
-- **[`simulation/sim/`](simulation/sim/)** — the agent-based economic simulator itself (analysis §8's plan). See [`simulation/README.md`](simulation/README.md) for scope, documented assumptions, and early findings. Currently on a feature branch pending review, not yet merged.
-- **`assets/`** — reference figures from the original document (item tiers, conversion chart, guild list).
+Two things are still placeholders, marked clearly in the rules, and
+need the organizer's input before the event: each guild's special item
+and unique quest.
 
-## Status
+## Background
 
-- [x] Written analysis (v1)
-- [x] Independent review of v1 — found real errors, incorporated (→ v2)
-- [x] Independent review of v2 — mistakenly reviewed stale v1 content, false alarm; but 2 genuine gaps found and fixed (→ v3)
-- [x] Independent review of v3 — found a real flaw in the proposed room rotation plus several precision issues, all fixed (→ v4)
-- [x] Independent review of v4 — found one false claim (opponent specialty coverage) plus 4 precision issues, all fixed (→ v5)
-- [x] Analysis blessed as mature enough to move to simulation
-- [ ] First-version agent-based simulation — built on a branch, PR open, awaiting review before merge
+The rules above are a corrected version of an earlier draft. An
+independent design review found and fixed several real issues in that
+draft — an unbalanced room schedule, a scoring contradiction, and
+others. **[Read the full analysis](analysis/game-balance-analysis.md)**
+(also as a [styled page](https://anselmotalotta.github.io/european-legends-analysis/))
+for the reasoning behind each fix.
+
+To answer questions the written analysis couldn't settle on its own —
+chiefly, *do guilds actually need to trade with each other to do
+well?* — a **[computer simulation](simulation/README.md)** plays
+through hundreds of practice games and reports back what tends to
+happen. Includes step-by-step instructions to run it yourself, no
+programming experience required.
+
+---
+
+## Project history
+
+*(For anyone curious how this repo got here — not needed to use anything above.)*
+
+- **`simulation/toy_scheduling_model.py`** and **`simulation/rotation_schedule.py`** — small standalone scripts used to check specific claims in the written analysis (room-scheduling risk, the fixed rotation table) before the full simulator existed.
+- **`assets/`** — reference figures from the original rules document (item tiers, conversion chart, guild list).
+- The written analysis went through 5 revisions and 4 rounds of independent review (errors found and fixed each round — see §0 of the analysis for the full changelog) before being judged mature enough to move to simulation.
+- The simulator went through 3 rounds of independent code review (PR #1 in this repo) before merging — see the "Review history" section at the bottom of [`simulation/README.md`](simulation/README.md).

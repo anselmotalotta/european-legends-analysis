@@ -172,7 +172,11 @@ class GameEngine:
             while changed:
                 changed = False
                 for pair, product in I.TIER1_RECIPES.items():
-                    a, b = tuple(pair)
+                    # sorted(), not tuple(): frozenset iteration order is
+                    # hash-seed-dependent per process; a/b order doesn't
+                    # change behavior here (removal is symmetric) but an
+                    # explicit deterministic order removes any doubt.
+                    a, b = sorted(pair)
                     if guild.has(a) and guild.has(b):
                         guild.remove(a, 1)
                         guild.remove(b, 1)
@@ -183,7 +187,11 @@ class GameEngine:
             while changed:
                 changed = False
                 for pair, product in I.TIER2_RECIPES.items():
-                    a, b = tuple(pair)
+                    # sorted(), not tuple(): frozenset iteration order is
+                    # hash-seed-dependent per process; a/b order doesn't
+                    # change behavior here (removal is symmetric) but an
+                    # explicit deterministic order removes any doubt.
+                    a, b = sorted(pair)
                     if guild.has(a) and guild.has(b):
                         if policy.should_craft_up(guild, a, b, unvisited, self.config):
                             guild.remove(a, 1)
