@@ -58,6 +58,17 @@ def _unvisited_room_items(unvisited_rooms):
     return {I.ROOM_PREREQUISITE[r] for r in unvisited_rooms}
 
 
+def _most_urgent(needed_items, unvisited_rooms):
+    """The item needed for the nearest upcoming room, among needed_items.
+    Falls back to a fixed deterministic order if none matches (shouldn't
+    happen in practice, but keeps this total)."""
+    for room in unvisited_rooms:
+        item = I.ROOM_PREREQUISITE[room]
+        if item in needed_items:
+            return item
+    return min(needed_items)
+
+
 class GreedyPolicy(AgentPolicy):
     """Rational: values items by shadow value (analysis §2.2), reasons
     about upcoming room needs, only crafts up when it doesn't sacrifice
@@ -93,14 +104,13 @@ class GreedyPolicy(AgentPolicy):
         # needed Tier-2 card (worth up to 15 to them); a spare Tier-2
         # item they don't need is a fairer, more credible offer.
         best_bait = max(spare, key=lambda item: I.SELL_PRICE[item])
-        # Which needed item to go after first is a real policy decision
-        # (not yet a sophisticated one - just "alphabetically first" -
-        # but it must be a *fixed* rule). Found via review r1(PR#2)/F1:
-        # `next(iter(needed_items))` picked an element via Python's
-        # per-process string-hash order, so which item a guild pursued -
-        # and therefore the resulting trade volume - silently varied
-        # between runs of the identical seeded model.
-        return (min(needed_items), best_bait)
+        # Which needed item to go after first: the one needed for the
+        # nearest upcoming room (see _most_urgent) when that ordering is
+        # available, otherwise a fixed deterministic fallback. Originally
+        # picked via Python's per-process string-hash order (review
+        # r1(PR#2)/F1, fixed to alphabetical), then refined to actual
+        # urgency (review R8 on PR#3, once room order became available).
+        return (_most_urgent(needed_items, unvisited_rooms), best_bait)
 
     def accept_trade(self, guild, item_offered_to_me, item_they_want, unvisited_rooms, config, rng):
         my_cost = self.room_access_value(guild, item_they_want, unvisited_rooms, config)
@@ -114,17 +124,25 @@ class GreedyPolicy(AgentPolicy):
         price = config.room_coin_fallback_fee  # never worse than just paying the GM
         if guild.coins < price:
             return None
-        return (min(needed_items), price)  # deterministic pick - see seek_trade
+        return (_most_urgent(needed_items, unvisited_rooms), price)
 
     def accept_purchase(self, guild, item_wanted, coins_offered, unvisited_rooms, config, rng):
         my_cost = self.room_access_value(guild, item_wanted, unvisited_rooms, config)
         return coins_offered >= my_cost
 
     def choose_reward_card(self, guild, available_cards, unvisited_rooms, config, rng):
-        needed = _unvisited_room_items(unvisited_rooms)
-        for card in available_cards:
-            if card in needed:
-                return card
+        # Prioritize by ROOM URGENCY (unvisited_rooms is chronologically
+        # ordered when the fixed rotation is used - see engine.py's
+        # _unvisited_rooms), not by an arbitrary card order. Found via
+        # review R8 on PR #3: the old version checked `card in needed`
+        # against an unordered set, so it could grab an item needed for
+        # a LATER room while missing the one needed next, forcing an
+        # avoidable coin fallback - a real, structural cause of the
+        # per-guild win-rate gap that review found.
+        for room in unvisited_rooms:
+            needed_item = I.ROOM_PREREQUISITE[room]
+            if needed_item in available_cards:
+                return needed_item
         return max(available_cards, key=lambda c: I.SELL_PRICE[c])
 
 

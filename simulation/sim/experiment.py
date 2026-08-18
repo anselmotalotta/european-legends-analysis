@@ -12,10 +12,22 @@ from .policies import POLICIES
 
 
 def run_batch(config, policy_mix, n_trials, seed_start=0):
-    """policy_mix: dict guild_name -> policy name ('greedy' or 'casual')."""
-    assignment = {name: POLICIES[policy_mix[name]] for name in config.guild_names}
+    """policy_mix: either a dict guild_name -> policy name ('greedy' or
+    'casual'), used unchanged for every trial, OR a callable
+    seed -> dict, called fresh per trial so the assignment varies with
+    the seed (see mixed_policy_per_trial). Found via investigating
+    review R8 on PR #3: a *static* mixed policy_mix (the same 4 guilds
+    always greedy, the same 4 always casual across an entire batch) was
+    confounding every "mixed policy" result in this project with which
+    SPECIFIC guilds happened to draw the better-performing policy - a
+    37x win-rate spread that had nothing to do with rotation position
+    and everything to do with a fixed random.Random(seed=0) call. Static
+    dicts are kept working for all_greedy_mix/all_casual_mix, which are
+    uniform and have nothing to confound."""
     results = []
     for i in range(n_trials):
+        mix = policy_mix(seed_start + i) if callable(policy_mix) else policy_mix
+        assignment = {name: POLICIES[mix[name]] for name in config.guild_names}
         engine = GameEngine(config, assignment, seed=seed_start + i)
         results.append(engine.run())
     return results
@@ -46,12 +58,32 @@ def all_casual_mix(config):
 
 
 def mixed_policy(config, greedy_fraction=0.5, seed=0):
+    """A single, fixed greedy/casual assignment. Useful when you
+    deliberately want one static mix (e.g. asserting a property of
+    'these 4 guilds greedy, these 4 casual'), but NOT for measuring
+    anything about guilds or rotation fairness in aggregate across many
+    trials - the same 4 guilds get the (much stronger) greedy policy
+    every single trial, which will dominate any per-guild statistic.
+    Use mixed_policy_per_trial for that instead."""
     import random
     rng = random.Random(seed)
     names = list(config.guild_names)
     rng.shuffle(names)
     n_greedy = round(len(names) * greedy_fraction)
     return {name: ("greedy" if i < n_greedy else "casual") for i, name in enumerate(names)}
+
+
+def mixed_policy_per_trial(config, greedy_fraction=0.5):
+    """Returns a callable seed -> dict, re-shuffling the greedy/casual
+    assignment fresh for every trial (pass to run_batch/compare
+    directly). This is what "mixed skill" should mean across a batch:
+    which specific guilds are strong varies game to game, the way it
+    would at a real event with random team assignment - not the same 4
+    colleagues being uniformly better than the other 4 every single
+    game."""
+    def make_mix(seed):
+        return mixed_policy(config, greedy_fraction=greedy_fraction, seed=seed)
+    return make_mix
 
 
 def print_human_summary(report, mix_name):
@@ -87,9 +119,8 @@ if __name__ == "__main__":
     base = GameConfig()
     free_choice = dataclasses.replace(base, use_fixed_rotation=False, coordinate_starting_hands=False)
 
-    for mix_name, mix_fn in [("all-greedy", all_greedy_mix), ("all-casual", all_casual_mix),
-                              ("mixed", mixed_policy)]:
-        mix = mix_fn(base)
+    for mix_name, mix in [("all-greedy", all_greedy_mix(base)), ("all-casual", all_casual_mix(base)),
+                          ("mixed", mixed_policy_per_trial(base))]:
         report = compare(base, free_choice, mix, n_trials=500,
                           label_base="fixed_rotation", label_variant="free_choice")
         if show_raw_json:

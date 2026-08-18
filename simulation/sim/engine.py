@@ -79,6 +79,20 @@ class GameEngine:
         guild.add(chosen, 1)
 
     def _unvisited_rooms(self, guild):
+        """Returns unvisited rooms. Under the fixed rotation, in the
+        guild's actual future visiting order (not arbitrary numeric
+        order) - this matters because GreedyPolicy.choose_reward_card
+        picks the first "needed" item it sees, so an arbitrary order
+        meant it could grab an item needed for a LATER room while
+        missing the one needed for its immediate next room, forcing an
+        avoidable coin fallback. Found via review R8 on PR #3: guilds
+        sharing a specialty (Prague/Vienna, Gdansk/Venice, etc.) showed
+        a large, structural win-rate gap under otherwise-identical play,
+        traced to exactly this - see simulation/README.md."""
+        if self.config.use_fixed_rotation:
+            visited_rooms = {f"Room{i+1}" for i in range(self.config.n_rooms)} - guild.rooms_visited
+            ordered = [room for _, room in R.rooms_for_guild(guild.name)]
+            return [room for room in ordered if room in visited_rooms]
         return [f"Room{i}" for i in range(1, self.config.n_rooms + 1)
                 if f"Room{i}" not in guild.rooms_visited]
 
@@ -106,8 +120,7 @@ class GameEngine:
         method_a = self._pay_room_fee(ga, room)
         method_b = self._pay_room_fee(gb, room)
 
-        skill_a, skill_b = Q.draw_skill(self.rng), Q.draw_skill(self.rng)
-        score_a, score_b = Q.score_room(room, ga, gb, skill_a, skill_b, self.rng,
+        score_a, score_b = Q.score_room(room, self.rng,
                                          self.config.room_win_bonus, self.config.room_tie_bonus)
         ga.coins += score_a
         ga.quest_coins_earned += score_a

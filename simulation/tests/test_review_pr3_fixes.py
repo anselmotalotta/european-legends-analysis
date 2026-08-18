@@ -18,9 +18,12 @@ def test_F2_barter_and_purchase_counts_are_tracked_separately():
     results = run_batch(config, all_greedy_mix(config), n_trials=100, seed_start=0)
     total_purchases = sum(g.purchase_count for r in results for g in r.guilds.values())
     total_barters = sum(g.barter_count for r in results for g in r.guilds.values())
-    # Known finding: under all-greedy play, purchases happen and barter doesn't.
+    # Purchases dominate under all-greedy play; barter is rare but no
+    # longer strictly zero after the R8 fix (choose_reward_card/seek_trade
+    # now target the guild's actual next need instead of an arbitrary
+    # one, which occasionally lets a barter clear that couldn't before).
     assert total_purchases > 0
-    assert total_barters == 0
+    assert total_purchases > total_barters * 10  # purchases still dominate heavily
     # trade_count must still equal the sum of the two (backward compatible).
     for r in results:
         for g in r.guilds.values():

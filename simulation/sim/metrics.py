@@ -29,6 +29,7 @@ def summarize(results):
     opponents_per_guild = []
     trade_partners_per_guild = []
     win_by_specialty = Counter()
+    win_by_guild = Counter()
     games_by_specialty = Counter()
     scores_excluding_debt = []
 
@@ -37,6 +38,7 @@ def summarize(results):
         all_scores.extend(scores.values())
         winner = max(scores, key=scores.get)
         win_by_specialty[result.guilds[winner].specialty] += 1
+        win_by_guild[winner] += 1
 
         game_complete = True
         for name, guild in result.guilds.items():
@@ -90,6 +92,14 @@ def summarize(results):
         "mean_distinct_trade_partners_per_guild": mean(trade_partners_per_guild),
         "win_rate_by_specialty": {
             spec: win_by_specialty[spec] / n for spec in games_by_specialty
+        },
+        # Per-guild win rate, not just per-specialty (review R8 on PR#3):
+        # averaging by specialty can hide a large gap between two guilds
+        # that happen to share one, since they don't share a starting
+        # hand, Round-1 room, or room-visit order - specialty and
+        # rotation position are independent variables here.
+        "win_rate_by_guild": {
+            name: win_by_guild[name] / n for name in per_guild_scores
         },
     }
 
