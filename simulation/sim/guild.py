@@ -1,4 +1,5 @@
 """Guild state during a simulated game."""
+import math
 from collections import Counter
 from dataclasses import dataclass, field
 
@@ -14,7 +15,9 @@ class Guild:
     rooms_visited: set = field(default_factory=set)
     opponents_faced: list = field(default_factory=list)
     trade_partners: set = field(default_factory=set)
-    trade_count: int = 0
+    trade_count: int = 0  # barter + purchases combined (kept for backward compatibility)
+    purchase_count: int = 0  # coin purchases only - subset of trade_count
+    barter_count: int = 0  # item-for-item swaps only - subset of trade_count
 
     def has(self, item, qty=1):
         return self.inventory[item] >= qty
@@ -30,7 +33,10 @@ class Guild:
             del self.inventory[item]
 
     def take_loan(self, shortfall, multiplier):
-        self.loans.append(shortfall * multiplier)
+        # Rounded up to the nearest whole coin (corrected-ruleset-v2.md §14)
+        # - repayment must be payable in physical coins at a live event,
+        # and rounding up (not down) means the bank is never undercharged.
+        self.loans.append(math.ceil(shortfall * multiplier))
 
     def total_debt(self):
         return sum(self.loans)

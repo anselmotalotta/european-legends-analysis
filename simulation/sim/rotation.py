@@ -25,14 +25,26 @@ ROUND1_ROOM_BY_GUILD = {
     for guild in pair
 }
 
-# Starting-hand coordination (analysis §2.1): which Tier-1 type each
-# guild's opening hand should be missing, so it can always craft its
-# Round-1 room's Tier-2 prerequisite from its opening hand.
+# Starting-hand coordination (analysis §2.1, revised per review R8's root
+# cause). Two constraints, both satisfiable simultaneously for every guild:
+# (1) the guild must be able to craft its Round-1 room's Tier-2
+# prerequisite from its opening hand, and (2) the guild's own Tier-1
+# specialty (produced every round, 6 units total by game end) must pair
+# with 2 of the 3 hand types under the recipe cycle, not just 1 - a
+# guild that only has 1 usable partner in hand uses it up on the first
+# conversion and then holds dead stock for the rest of the game.
+# Previously only (1) was enforced; that left Bursa, Stockholm, Gdansk,
+# and Venice with only 1 usable partner each, which review found
+# accounted for a measured 7.2x per-guild win-rate spread under
+# otherwise-identical play - see simulation/README.md's Findings.
+# Each guild has exactly one Tier-1 type (its own specialty, or that
+# specialty's non-recipe "diagonal" partner) that satisfies both
+# constraints at once; see tests/test_review_pr3_r3_starting_hand_fix.py.
 COORDINATED_MISSING_MATERIAL = {
-    "Lisbon": "Wax", "Stockholm": "Wax",       # need Cloth = Flax+Saltpetre
-    "Bursa": "Flax", "Ghent": "Flax",          # need Dye = Wax+Charcoal
-    "Gdansk": "Flax", "Prague": "Flax",        # need BlackPowder = Charcoal+Saltpetre
-    "Venice": "Charcoal", "Vienna": "Charcoal",  # need Candle = Flax+Wax
+    "Lisbon": "Wax", "Stockholm": "Charcoal",   # need Cloth = Flax+Saltpetre
+    "Bursa": "Saltpetre", "Ghent": "Flax",      # need Dye = Wax+Charcoal
+    "Gdansk": "Wax", "Prague": "Flax",          # need BlackPowder = Charcoal+Saltpetre
+    "Venice": "Saltpetre", "Vienna": "Charcoal",  # need Candle = Flax+Wax
 }
 
 

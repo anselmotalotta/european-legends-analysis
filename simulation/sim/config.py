@@ -21,7 +21,12 @@ class GameConfig:
     room_coin_fallback_fee: int = 15
     room_win_bonus: int = 5
     room_tie_bonus: int = 2
-    loan_interest_multiplier: int = 2  # repaid at double
+    # 1.5x, not the original 2x: lowered by the tuning sweep in
+    # simulation/README.md, which found double interest measurably
+    # widened the game's overall score spread compared to 1.5x, for a
+    # roughly proportional increase in average debt. See corrected-
+    # ruleset-v2.md §14, which reflects this as the adopted rule.
+    loan_interest_multiplier: float = 1.5
     production_per_break: tuple = (1, 2, 3)  # Tier-1 units/round at breaks 1-3
 
     # --- ASSUMPTION: §4 item 1 (generic 0/2/4/6/8/10 rule contradicts
@@ -61,6 +66,17 @@ class GameConfig:
     # chosen (not who picks), so it's a real case, not hypothetical.
     # One of "winner_first", "loser_first", "random". ---
     reward_pick_order: str = "winner_first"
+
+    # --- ESTABLISHED (source doc: "Guilds may freely exchange items for
+    # coins or other items"), but exposed as a toggle so the tuning sweep
+    # can test what happens if coin-for-item purchases between guilds are
+    # disabled and only barter (item-for-item) trades remain - a live
+    # question raised by simulation findings: under rational play, almost
+    # all guild-to-guild exchange turns out to be coin purchases rather
+    # than barter, which is a weaker fit for the event's stated networking
+    # purpose than an actual two-sided swap. Default True (matches the
+    # current ruleset as written). ---
+    allow_coin_purchases: bool = True
 
     # --- Not yet modeled at all (analysis §2.6): guild-special Tier-3
     # items (20-coin sell price) and unique per-guild quests are still

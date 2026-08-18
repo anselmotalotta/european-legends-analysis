@@ -32,21 +32,23 @@ how much:
    In each round, every guild visits one of the four themed rooms
    (following the fixed room schedule from the rules), pays its entry
    fee, and "does" the room's two quests. The simulator doesn't
-   actually generate music quizzes or puzzles — instead, each guild is
-   given a random skill level for that room (representing how good
-   that mix of 5 real people happens to be at that kind of challenge)
-   and scored using the room's real scoring table from the rules. This
+   actually generate music quizzes or puzzles — instead, each quest
+   gets its own fresh random skill draw (representing how good that
+   mix of 5 real people happens to be at that specific challenge) and
+   is scored using the room's real scoring table from the rules. This
    is deliberately a simplification: the point of this tool is to test
    the *economy* (trading, crafting, debt), not to predict trivia
-   scores.
+   scores — and it's a known-incomplete one (see "Known simplifications"
+   below): it doesn't model a team being consistently strong or weak
+   across the whole evening, only quest to quest.
 3. **Between rounds, guilds produce, craft, and trade.** Each guild
    makes more of its own raw material, converts materials into more
    valuable goods where it makes sense to, and — depending on how
    "smart" that guild is playing (see below) — tries to trade or buy
    what it's missing from other guilds.
 4. **Guilds that come up short take a loan** from the Game Master,
-   exactly as the real rules describe, and owe it back double at the
-   end.
+   exactly as the real rules describe, and owe it back at one and a
+   half times the amount borrowed, per the corrected rules.
 5. **At the end, everything is added up**: leftover coins, plus
    whatever items a guild is still holding (sold at the rules' stated
    prices), minus any loan debt. Highest total wins that practice
@@ -160,10 +162,10 @@ like this, printed three times (once for each mix of "smart" and
 
   --- fixed_rotation ---
   Ran 500 practice games.
-  Average final score across all guilds: 66.5 coins (lowest game: 3, highest: 119).
+  Average final score across all guilds: 75.4 coins (lowest game: 34, highest: 117).
   All 8 guilds visited all 4 rooms in 100% of games.
-  On average, each guild made 2.7 exchanges with other guilds - swaps or coin purchases - (7% of guilds made none at all).
-  On average, each guild took out 0.2 loan(s), ending the game owing 1.5 coins in debt.
+  On average, each guild made 3.5 exchanges with other guilds - swaps or coin purchases - (0% of guilds made none at all).
+  On average, each guild took out 0.0 loan(s), ending the game owing 0.0 coins in debt.
 
   --- free_choice ---
   Ran 500 practice games.
@@ -206,10 +208,13 @@ a specific rule change actually helps.
 
 **Putting it together for the example above:** under thoughtful
 ("greedy") play, the recommended fixed room schedule gets every guild
-through the whole game (100%) and keeps debt low (1.5 coins), while
-leaving the schedule open (`free_choice`) drops full completion to
-38% and pushes average debt up sharply — a concrete, numeric reason to
-use the fixed schedule rather than open scheduling at the real event.
+through the whole game (100%) with no guild ever forced into a loan,
+while leaving the schedule open (`free_choice`) drops full completion
+to 38% and pushes average debt up to 7.7 coins — a concrete, numeric
+reason to use the fixed schedule rather than open scheduling at the
+real event. (This is the one finding in this whole project that
+hasn't needed any correction across every review round — see Findings
+below for the ones that did.)
 
 ### Something not working?
 
@@ -240,8 +245,15 @@ nothing concrete to simulate yet.
 
 ### Known simplifications (stated, not hidden)
 
-- **Quest performance is abstracted**, not content-simulated. Each guild draws a `quest_skill` in `[0, 1]` per room-quest and scores are read off each quest's own table (`sim/quests.py`) using that skill. Actually simulating "identify 10 musical excerpts" would be noise dressed up as precision for an economy simulator.
-- **One trade/purchase attempt per guild per trading break** — not exhaustive matchmaking.
+A second independent review ("fidelity audit," see Review history below) found that three of these simplifications specifically undermine the conclusions this tool is used to draw — those are marked **⚠ affects headline findings** and explained in more detail in Findings below, not just listed.
+
+- **⚠ No price negotiation.** Every coin purchase is offered and accepted at exactly `room_coin_fallback_fee` (15) — the same number is the Game Master's fallback fee, the buyer's offer, and (when the seller also needs the item) the seller's minimum. Every trade this model completes is an indifference transfer, not a negotiated deal. Real players haggle; this model doesn't.
+- **⚠ Agents never take a "bad deal."** Both `GreedyPolicy` and `CasualPolicy` value a needed item identically (`room_access_value` returns the same flat number for both), and `accept_trade`/`accept_purchase` only ever accept when the numbers favor them. Real colleagues at a charity event give things away, trade for goodwill, and misprice constantly — neither policy models that, so "rational" and "casual" bracket two arithmetic settings, not the range of real human trading behavior.
+- **⚠ Guilds never trade for crafting materials, only for room access.** Each guild produces 6 units of its own Tier-1 material and never trades for the complementary type needed to craft it into anything — `seek_trade`/`seek_purchase` only ever pursue Tier-2 room prerequisites. Measured: guilds end the game holding most of their own produced units, unused (5 of 9 available, after the starting-hand fix below — worse before it). The rules construct real gains from trade here (two guilds pooling complementary raw materials); the agents can't see them, so "does this game need trading" is being answered by a model that's blind to what may be the single largest trade opportunity the rules create. One interesting side effect of the starting-hand fix: genuine barter (not just coin purchase) has started clearing occasionally in testing, something that never happened before it — see Findings below.
+- **Quest performance is abstracted**, not content-simulated. A fresh `quest_skill` in `[0, 1]` is drawn independently for every quest a guild attempts (`sim/quests.py`) — not shared across a room's 2 quests (an earlier version did this and inflated per-room score spread by ~36%, since fixed) and **not persistent across a guild's 4 rooms either**. A real team of 5 colleagues plausibly carries some consistent strength across the evening; this model has none. Measured: forcing one skill per guild for the whole game instead produces ~70% higher score spread (30.75 vs. 17.86, 300-game sample) than the current fully-independent model — so every spread-based fairness number in this document should be read as a **floor**, not an estimate.
+- **The largest equalizing part of a real guild's score isn't modeled.** Each guild's unique quest (15–20 coins) and guild-special Tier-3 item (+6 over a plain Tier-3) are still "in elaboration" in the source (§2.6) and out of scope here — but together they could be up to ~43% of a typical modeled score (61 coins), and both are roughly equal-for-everyone rather than skill-dependent, meaning they'd *compress* relative spread, not widen it. Every fairness/spread figure in this document is therefore also an upper bound for this reason, independent of the skill-persistence point above.
+- **Trading is confined to the four break windows, one attempt per guild per window** — the source says items can be exchanged "anywhere and at any time during the game" (§9); this model only allows it during the three trading breaks and the final window, once per guild each. Not exhaustive matchmaking, and not the "anytime" the rules describe.
+- **No time, movement, or Guildhall-queueing model.** Every action executes instantly. A completion rate like "100% of games" says nothing about whether 8 guilds can physically transact at one Guildhall inside a real 10-minute break — see analysis §5.
 - **Free-choice scheduling requires 2 guilds per room to count as a valid visit** (matching "only two guilds can compete in each room in the same round" in the source), stricter than the standalone [`../toy_scheduling_model.py`](../toy_scheduling_model.py), which didn't model that constraint — this is why the full engine's free-choice completion rate is somewhat lower than that model's 38.2%.
 
 ### Layout
@@ -255,7 +267,8 @@ nothing concrete to simulate yet.
 - `sim/engine.py` — the round-by-round game loop.
 - `sim/metrics.py` — aggregate statistics across many games.
 - `sim/experiment.py` — comparative batch runner (`--json` flag prints raw data instead of the plain-English summary).
-- `tests/` — pytest suite (32 tests) covering recipes, rotation integrity, loan math, end-to-end engine behavior, and review fixes.
+- `sim/tuning_sweep.py` — the loan-interest / coin-purchase / reward-pick-order comparison behind the "Tuning sweep" section below.
+- `tests/` — pytest suite (50 tests) covering recipes, rotation integrity, loan math, end-to-end engine behavior, and review fixes.
 
 Run the test suite with:
 ```
@@ -264,22 +277,84 @@ python3 -m pytest tests/ -v
 
 ### Not yet done (left for a future iteration)
 
+**Highest priority, from the fidelity audit (see Review history):**
+- **Give agents real price negotiation** instead of a single hardcoded constant, and **give them a reason to trade for crafting complements**, not just room access — both required before "does this game need trading" can be answered by this model.
+
+*(The per-guild fairness gap that used to top this list is resolved — see Findings below.)*
+
+**Also open:**
+- A persistent per-guild skill component (a guild-level mean plus per-quest noise), so score spread reflects a "some teams are just stronger" effect the current fully-independent-per-quest model has none of.
+- Modeling guild-special items and unique quests (§2.6), once finalized in the source — see the upper-bound caveat above.
 - Shadow-value-by-round and marginal per-room expected value (analysis §8 items 6-7) — need price inference / counterfactual re-runs, not just bookkeeping.
-- Guild-special items and unique quests (§2.6), once finalized in the source.
-- A more thorough trade-matching mechanism (still one attempt per guild per break, across two instruments — barter and coin purchase).
-- Explaining the specialty win-rate spread noted below (§8 item 8) rather than just reporting it.
-- The full §8 design-variant sweep (loan interest, Tier-3 prices, reward-pick-order, mandatory trading windows) - `sim/experiment.py` and `sim/config.py`'s `reward_pick_order` support this now, but only the rotation comparison is wired up as a worked example.
-- A separate `Guild.purchase_count` distinct from `trade_count`: right now barter swaps and coin purchases both increment the same counter, so "trades" in the metrics is really barter+purchases combined.
+- A more thorough trade-matching mechanism (still one attempt per guild per break, across two instruments — barter and coin purchase) and modeling the "anywhere/anytime" trading the rules actually describe, not just break windows.
+- Giving `CasualPolicy` a genuine willingness to accept locally unfavorable trades (real charity-event behavior), so the two policies bracket actual human variation rather than two arithmetic settings of the same valuation function.
+- A time/movement/Guildhall-queueing model, if the operational risk in analysis §5 is worth quantifying rather than just flagging.
+- Two of §8's design variants — Tier-3 prices and mandatory trading windows — aren't swept yet.
 
 ### Findings from this version so far (illustrative, not final)
 
-500-game batches, paired seeds — these are the exact numbers `python3 -m sim.experiment` prints (see the example output above):
+**What's solid:** the fixed room rotation reaches 100% room completion by construction, vs. 38% for free-choice scheduling under the same policies — reproducing the standalone toy model's ~38.2% finding inside the full economic engine. This claim doesn't depend on price, policy, or skill modeling, and it's the strongest result this project has produced.
 
-- **The fixed room rotation reaches 100% room completion by construction**, vs. 38% for free-choice scheduling under the same policies — reproducing the standalone toy model's ~38.2% finding inside the full economic engine.
-- **Corrected finding, superseding an earlier version of this line:** rational ("greedy") guilds exchange *more* often than casual ones (2.7/guild vs. 1.4/guild), not less — but instrumenting the split (barter vs. coin purchase) that the metric doesn't separate yet reveals why, and it matters: **under all-greedy play, essentially 100% of those exchanges are coin purchases and ~0% are barter swaps** (0 barters observed in a 200-game sample). Under all-casual play, it's a roughly even mix of both. In other words, "smart" guilds mostly buy their way to what they need with coins rather than negotiate a swap with another guild — solo chaining (§2.5) plus a coin side-payment is usually enough on its own, so the genuinely networking-relevant behavior (a two-sided barter that requires actually talking to another guild) is more common under *casual* play, even though total transaction count is higher under greedy play. This is a meaningfully different answer to "does the economy need trading?" than either "yes" or "no" — it needs *some* form of exchange, but rational play satisfies that with money, not negotiation, which matters if the goal is the event's stated networking purpose specifically.
-- **Casual and mixed policy mixes produce meaningfully more loan debt than all-greedy play** (mean debt/guild: 13.1 casual vs. 1.5 greedy, fixed rotation).
-- **Specialty win-rate is not stable across policy mixes** in this version — which specialty leads changes depending on the policy mix, more consistent with noise or a mix-dependent interaction than a fixed structural bias, but not yet explained (§8 item 8).
+**What's retracted or reopened, after a fidelity audit found the model's own simplifications were controlling the answers (see Review history):**
+
+- ~~Does this economy need trading?~~ **Not currently supportable, in either direction.** Two of this model's simplifications each independently undermine that question on their own: no price negotiation (R1 below), and agents that never seek out the crafting-material trades the rules actually construct (R7 below). Any prior version of this document that answered this question — including a "twist" answer about coin purchases vs. barter — was answering a question this model isn't yet equipped to answer. It needs the fixes listed in Not yet done first.
+- ~~Loan interest measurably widens fairness beyond the debt itself~~ **Also not supportable — corrected twice.** First correction: the score-spread widening across interest rates turned out to be pure arithmetic (a bigger constant subtracted from an unchanged distribution), not a behavioral effect — confirmed by a `stdev_excluding_debt` metric that's identical at every rate. Second correction, found by review r5: even "debt scales with the multiplier" isn't independent evidence — the number and size of loans taken is *identical* across multipliers (pinned by a regression test), so debt is that same fixed total times different constants. **The honest justification for 1.5× is a plain values choice** — a gentler penalty for a charity event — not a simulation finding of any kind.
+- **A large, real, per-guild fairness gap was found — and its root cause was too, and fixed.** An earlier version of this document reported "specialty win-rate is not stable... more consistent with noise." That was wrong on two counts. First, averaging by specialty hides the real effect: under identical (all-greedy) play, individual guild win rates ranged from 3.3% (Gdansk) to 23.5% (Lisbon) — a **7.2× spread** — with two guilds sharing a specialty (e.g. Prague 20.3% vs. Vienna 14.2%, both Charcoal) differing substantially, because specialty and rotation position are independent variables in this design. Second, a separate methodology bug made an earlier "mixed policy" reading of this even worse: `mixed_policy()` used a *fixed* `random.Random(seed=0)` shuffle, so the same 4 guilds were "greedy" (which scores far higher than "casual") in literally every game of a batch — producing a spurious 37.7× spread that was really just measuring which guilds got the better policy, not rotation fairness. Found and fixed in this project, not by external review: `run_batch`/`compare` now accept a per-trial callable (`mixed_policy_per_trial`) so the assignment varies game to game, the way real team strength would.
+
+  **What was ruled out for the 7.2× gap first** (all measured, not assumed): specialty (it's per-guild); the engine's shared sequential RNG stream and processing order (reversing which room is processed first within a round doesn't change the ranking); simple opponent-identity clustering (doesn't hold cleanly across all 8 guilds); and reward-card/trade-target urgency (fixing `choose_reward_card`/`seek_trade` to prioritize a guild's actual next room instead of an arbitrary order — a genuine, kept improvement in policy realism — made the gap *larger*, 7.2× vs. an earlier 3.4× reading, not smaller).
+
+  **Root cause found by an independent review, verified independently in this project, and fixed.** `COORDINATED_MISSING_MATERIAL` (`sim/rotation.py`) assigns each guild's starting hand to guarantee it can pay its Round-1 room fee — but that constraint has two valid solutions per guild, and the version in place through this point had picked, for exactly 4 of the 8 guilds (Bursa, Stockholm, Gdansk, Venice), the option that leaves the guild's own Tier-1 specialty able to pair with only 1 of its 3 remaining hand types under the recipe cycle (`sim/items.py`), instead of 2. Those 4 guilds spend their one usable partner card early and then hold every further unit of their own production (6 units/game) as dead 1-coin stock; the other 4 keep converting all game. Verified directly: mean leftover Tier-1 inventory was a clean 5.0-vs-7.0 split tracking exactly this grouping (`mean_score` tracked the same way: 74.9-78.3 for the 2-partner group, 64.9-69.5 for the 1-partner group). **The fix**: reassign the missing-material choice for those 4 guilds to their other, equally Round-1-valid option, which gives every guild 2 usable partners. Verified after the fix: leftover inventory becomes uniform (5.0 for all 8 guilds), and per-guild win-rate spread drops to **~1.8-2.1× at 400-2000 games** — consistent with ordinary sampling noise for an 8-way outcome, not a structural effect. See `sim/rotation.py`'s updated table and `tests/test_review_pr3_r3_starting_hand_fix.py`.
+
+  **The honest caveat, raised by the same review:** real players can trade away dead stock in a way this model's agents can't (the R7 limitation above), so the real-event gap was likely always somewhat smaller than 7.2×. But the underlying asymmetry — 4 guilds structurally needing to trade to use their own production, 4 not — was real regardless of that caveat, and worth fixing on its own terms rather than counting on trading to mask it. Interestingly, fixing it also produced the first genuine, unprompted barter this project has observed (see the Known simplifications note above) — with complementary rather than lopsided surpluses, barter has something to actually clear on now and then, where before it never did.
+
+### Tuning sweep: what the numbers actually support
+
+`sim/tuning_sweep.py` runs four comparisons — 400-game batches, common random numbers across every variant compared (and, since the fidelity audit, a genuinely per-trial-random policy mix, not a fixed one — see Findings above), so differences reflect the rule change, not luck or a confound.
+
+**Loan interest (mixed player skill, per-trial random mix):**
+
+| Multiplier | Mean debt/guild | Score std. dev. | Score std. dev., debt excluded |
+|---|---|---|---|
+| 1.0× (no penalty) | 2.3 | 17.3 | 15.3 |
+| **1.5×** | **3.6** | **18.9** | **15.3** |
+| 2.0× (original) | 4.6 | 20.2 | 15.3 |
+
+The debt-excluded column is identical at every multiplier — no guild plays any differently depending on the interest rate, because nothing in this model's decision-making reads that number. Per an independent review (r5): even "mean debt scales with the multiplier" isn't independent evidence of anything — the number and size of loans taken is identical across multipliers (confirmed: total loan *count* is pinned by a regression test), so debt is just that same fixed total times a bigger constant. **The honest justification for 1.5× is a plain values choice** — a gentler penalty for a charity/team-building event, no more, no less. 1.0× wasn't adopted because none of this simulator's agent policies model a guild *deliberately* exploiting a penalty-free loan, so that risk isn't ruled out by this data.
+
+**Coin purchases between guilds, allowed vs. disabled** (barter and purchase counts tracked separately):
+
+| | Barters/guild | Purchases/guild |
+|---|---|---|
+| All-greedy, purchases allowed | 0.2 | 3.3 |
+| All-greedy, purchases disabled | 0.5 | 0.0 |
+| All-casual, purchases allowed | 0.8 | 0.6 |
+| All-casual, purchases disabled | 0.7 | 0.0 |
+
+Disabling purchases no longer means "0 barters either way," as it did before the starting-hand fix — a small amount of genuine barter now clears on its own (0.2 → 0.5 barters/guild under skilled play, disabled vs. allowed), because the fix gives guilds complementary rather than lopsided surpluses. It's still a small effect, and **this result should not be read as settling the trading question** — see Findings above: with no price negotiation and no crafting-complement trading motive, this comparison is still showing what one hardcoded price threshold does, not what a flexible economy would do.
+
+**Reward-pick order (winner-first vs. loser-first vs. random, mixed play, per-trial random):** score standard deviation 18.9 / 19.5 / 18.9, per-guild win-rate ratio 2.06× / 1.74× / 2.74× — no consistent pattern (random's 2.74× looks higher, but is within the noise range confirmed by Sweep D below at similar sample sizes). **Conclusion: no change** — this rule isn't a real lever on the fairness question.
+
+**Per-guild fairness under identical (all-greedy) play** — the cleanest read on the rotation/starting-hand design itself, with no policy or skill-mix confound. **These numbers are after the starting-hand fix described in Findings above** — for comparison, before the fix this ranged from 3.3% (Gdansk) to 23.5% (Lisbon), a 7.2× spread:
+
+| Guild | Win rate | Specialty |
+|---|---|---|
+| Bursa | 18.0% | Wax |
+| Venice | 16.0% | Saltpetre |
+| Gdansk | 14.0% | Saltpetre |
+| Ghent | 13.5% | Flax |
+| Lisbon | 11.3% | Wax |
+| Prague | 9.8% | Charcoal |
+| Stockholm | 8.7% | Flax |
+| Vienna | 8.7% | Charcoal |
+
+2.1× spread at 400 games, narrowing to 1.8× at 2000 games (checked separately) — consistent with ordinary sampling noise for an 8-way outcome around an expected 12.5% each, not a remaining structural effect.
+
+Reproduce all four with `python3 -m sim.tuning_sweep`.
 
 ### Review history
 
-This simulator went through three rounds of independent code review before merging (see PR #1 in this repo's history for the full transcript). Round 1 found four real issues — an unpaired comparison that let sampling noise masquerade as a design effect, a biased deterministic tie-break, a missing coin-purchase mechanism that materially changed the headline trading finding, and a boolean config flag too narrow to express a three-way design variant — all fixed and covered by regression tests in `tests/test_review_r1_fixes.py`. Rounds 2 and 3 confirmed the fixes and approved.
+This simulator went through three rounds of independent code review before merging its first version (see PR #1 in this repo's history for the full transcript) — an unpaired comparison letting sampling noise masquerade as a design effect, a biased deterministic tie-break, a missing coin-purchase mechanism, and a boolean config flag too narrow for a three-way variant, all found and fixed.
+
+The loan-interest/coin-purchase tuning pass (PR #3) went through a second round covering three different kinds of review. A first pass (r1-r6) caught two real bugs in the writeup — the score-spread "distortion" claim was arithmetic, not behavioral, and a trade counter conflated barter with purchases, producing a factually wrong sentence — both fixed and covered by `tests/test_review_pr3_fixes.py`. A second pass, a dedicated fidelity audit (r2, r4-r6), checked the simulator mechanic-by-mechanic against the ruleset and found the specific simplifications (R1-R8) now documented throughout this file. Two of the audit's own numbers were themselves corrected mid-review after the reviewer traced their own claims back to the code rather than a docstring — recorded in Known simplifications above, not edited out. `tests/test_review_pr3_r2_fidelity_audit.py` covers what's fixed (R2, R8 reporting) and pins what's confirmed-but-not-fixed (R1, R7) as documented limitations.
+
+A third pass (r7), reviewing the fix for R2 and the R8 investigation described above, went further than confirming them: it independently traced R8's root cause to the starting-hand table and proposed the fix now adopted (see Findings above). That claim was verified in this project before being adopted, not taken on trust — reproduced the exact same numbers (leftover inventory, mean score, win rate) independently, confirmed the mechanistic explanation programmatically against the recipe graph and hand table, checked the proposed fix didn't break the existing Round-1-craftability guarantee, and measured the actual before/after effect on the win-rate spread (7.2× → ~1.8-2.1×) rather than accepting the fix on the strength of the argument alone. `tests/test_review_pr3_r3_starting_hand_fix.py` covers all four properties (2-partner hand, Round-1 craftability, the fixed win-rate spread, and uniform leftover inventory).
