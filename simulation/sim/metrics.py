@@ -23,11 +23,14 @@ def summarize(results):
     loans_per_guild = []
     debt_per_guild = []
     trades_per_guild = []
+    barters_per_guild = []
+    purchases_per_guild = []
     zero_trade_guilds = 0
     opponents_per_guild = []
     trade_partners_per_guild = []
     win_by_specialty = Counter()
     games_by_specialty = Counter()
+    scores_excluding_debt = []
 
     for result in results:
         scores = result.scores()
@@ -47,10 +50,19 @@ def summarize(results):
             loans_per_guild.append(len(guild.loans))
             debt_per_guild.append(guild.total_debt())
             trades_per_guild.append(guild.trade_count)
+            barters_per_guild.append(guild.barter_count)
+            purchases_per_guild.append(guild.purchase_count)
             if guild.trade_count == 0:
                 zero_trade_guilds += 1
             opponents_per_guild.append(len(set(guild.opponents_faced)))
             trade_partners_per_guild.append(len(guild.trade_partners))
+            # Isolates the loan-interest rate's effect on the score
+            # distribution from the rest of the game (review r1(PR#3)/F1:
+            # "score stdev" alone conflates a genuine behavioral effect
+            # with the pure arithmetic of subtracting a bigger debt
+            # number - this metric holds debt out so the two can be told
+            # apart). See simulation/README.md's Tuning sweep section.
+            scores_excluding_debt.append(scores[name] + guild.total_debt())
         completion_flags.append(game_complete)
 
     def mean(xs):
@@ -61,6 +73,7 @@ def summarize(results):
         "score": {
             "mean": mean(all_scores),
             "stdev": stats.stdev(all_scores) if len(all_scores) > 1 else 0.0,
+            "stdev_excluding_debt": stats.stdev(scores_excluding_debt) if len(scores_excluding_debt) > 1 else 0.0,
             "min": min(all_scores) if all_scores else 0,
             "max": max(all_scores) if all_scores else 0,
         },
@@ -70,6 +83,8 @@ def summarize(results):
         "mean_loans_per_guild": mean(loans_per_guild),
         "mean_debt_per_guild": mean(debt_per_guild),
         "mean_trades_per_guild": mean(trades_per_guild),
+        "mean_barters_per_guild": mean(barters_per_guild),
+        "mean_purchases_per_guild": mean(purchases_per_guild),
         "pct_guilds_zero_trades": 100 * zero_trade_guilds / guild_slots_total,
         "mean_distinct_opponents_per_guild": mean(opponents_per_guild),
         "mean_distinct_trade_partners_per_guild": mean(trade_partners_per_guild),

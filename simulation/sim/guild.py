@@ -15,7 +15,9 @@ class Guild:
     rooms_visited: set = field(default_factory=set)
     opponents_faced: list = field(default_factory=list)
     trade_partners: set = field(default_factory=set)
-    trade_count: int = 0
+    trade_count: int = 0  # barter + purchases combined (kept for backward compatibility)
+    purchase_count: int = 0  # coin purchases only - subset of trade_count
+    barter_count: int = 0  # item-for-item swaps only - subset of trade_count
 
     def has(self, item, qty=1):
         return self.inventory[item] >= qty

@@ -233,6 +233,8 @@ class GameEngine:
                             partner.add(offered, 1)
                             guild.trade_count += 1
                             partner.trade_count += 1
+                            guild.barter_count += 1
+                            partner.barter_count += 1
                             guild.trade_partners.add(pname)
                             partner.trade_partners.add(name)
                             traded = True
@@ -263,6 +265,8 @@ class GameEngine:
                     guild.add(wanted, 1)
                     guild.trade_count += 1
                     partner.trade_count += 1
+                    guild.purchase_count += 1
+                    partner.purchase_count += 1
                     guild.trade_partners.add(pname)
                     partner.trade_partners.add(name)
                     break

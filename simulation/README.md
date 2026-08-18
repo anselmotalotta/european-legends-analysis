@@ -287,26 +287,26 @@ The findings above raised two live questions: is the loan interest rate too hars
 
 **Loan interest (mixed player skill):**
 
-| Multiplier | Mean debt/guild | Score std. dev. |
+| Multiplier | Mean debt/guild | Score std. dev. | Score std. dev., debt excluded |
+|---|---|---|---|
+| 1.0× (no penalty) | 3.6 | 20.0 | 17.1 |
+| **1.5×** | **5.6** | **22.2** | **17.1** |
+| 2.0× (original) | 7.1 | 24.4 | 17.1 |
+
+**Correction to an earlier version of this section:** the raw score-spread column was originally read as evidence that higher interest distorts outcomes beyond the debt itself — checked more carefully (splitting the score into "with debt" and "without"), that's wrong. The debt-excluded column is *identical* at every multiplier: no guild plays any differently depending on the interest rate, because nothing in this model's decision-making reads that number — the wider spread at higher multipliers is simply a bigger constant being subtracted from the same underlying outcomes, not a separate fairness effect. **The honest justification for lowering interest to 1.5× is therefore a values choice, not a distortion finding**: debt scales with the multiplier as expected (3.6 → 5.6 → 7.1), and a charity/team-building event is a reasonable place to prefer the gentler penalty of the three tested. 1.0× (no penalty at all) tested lowest on every metric but wasn't adopted, because none of this simulator's agent policies model a guild *deliberately* exploiting a penalty-free loan — that risk isn't ruled out by this data.
+
+**Coin purchases between guilds, allowed vs. disabled** (barter and purchase counts are now tracked separately, not combined into one "exchanges" figure):
+
+| | Barters/guild | Purchases/guild |
 |---|---|---|
-| 1.0× (no penalty) | 3.6 | 20.0 |
-| **1.5×** | **5.6** | **22.2** |
-| 2.0× (original) | 7.1 | 24.4 |
-
-Higher interest doesn't just mean more debt — it measurably widens the overall score spread, i.e. makes the game less fair. **Conclusion: lowered to 1.5× in the corrected ruleset.** 1.0× (no penalty at all) wasn't adopted despite testing best, because none of this simulator's agent policies model a guild *deliberately* exploiting a penalty-free loan — that risk isn't ruled out by this data, so 1.5× is the more conservative choice: a real but reduced penalty.
-
-**Coin purchases between guilds, allowed vs. disabled:**
-
-| | Exchanges/guild | (of which barter) |
-|---|---|---|
-| All-greedy, purchases allowed | 2.7 | 0.0 |
+| All-greedy, purchases allowed | 0.0 | 2.7 |
 | All-greedy, purchases disabled | 0.0 | 0.0 |
-| All-casual, purchases allowed | 1.4 | ~0.7 |
-| All-casual, purchases disabled | 0.8 | 0.8 |
+| All-casual, purchases allowed | 0.7 | 0.6 |
+| All-casual, purchases disabled | 0.8 | 0.0 |
 
-This is the finding that overturned the obvious-sounding fix: disabling purchases doesn't convert skilled guilds' coin-based exchanges into barter — it just removes the exchange, full stop, because a rational guild's barter offer rarely clears on its own (same shadow-value-vs-liquidation-value gap as §2.2). **Conclusion: no change** — removing purchases would make skilled guilds interact with each other *less*, the opposite of the goal.
+This is the finding that overturned the obvious-sounding fix: disabling purchases doesn't convert skilled guilds' coin-based exchanges into barter (0.0 barters either way) — it just removes the exchange entirely, because a rational guild's barter offer rarely clears on its own (same shadow-value-vs-liquidation-value gap as §2.2). **To be precise about the earlier draft of this finding: "allowed" and "disabled" are not both zero** — 2.7 purchases/guild happen when allowed, dropping to 0 when disabled; barter is what stays at zero either way. **Conclusion: no change** — removing purchases would make skilled guilds interact with each other *less* (2.7 → 0 total exchanges), the opposite of the goal.
 
-**Reward-pick order (winner-first vs. loser-first vs. random):** score standard deviation was 24.4 / 24.0 / 24.2 — no meaningful difference, and specialty spread was, if anything, slightly worse under loser-first. **Conclusion: no change** — this rule isn't a real lever on the fairness question, despite looking like a plausible one on paper.
+**Reward-pick order (winner-first vs. loser-first vs. random):** score standard deviation was 22.2 / 21.9 / 22.1 (all under the corrected 1.5× loan interest default) — no meaningful difference, and specialty spread was, if anything, slightly worse under loser-first. **Conclusion: no change** — this rule isn't a real lever on the fairness question, despite looking like a plausible one on paper.
 
 Reproduce all three with `python3 -m sim.tuning_sweep`.
 

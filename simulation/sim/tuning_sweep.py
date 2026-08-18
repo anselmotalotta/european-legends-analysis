@@ -22,12 +22,24 @@ def _row(label, config, mix):
     win_rates = s["win_rate_by_specialty"].values()
     spread = (max(win_rates) - min(win_rates)) if win_rates else 0.0
     print(f"{label:38s} mean_score={s['score']['mean']:6.1f}  score_stdev={s['score']['stdev']:5.1f}  "
+          f"stdev_excl_debt={s['score']['stdev_excluding_debt']:5.1f}  "
           f"complete%={s['pct_games_all_guilds_complete']:5.1f}  mean_debt={s['mean_debt_per_guild']:5.1f}  "
-          f"mean_exchanges={s['mean_trades_per_guild']:4.1f}  specialty_spread={spread:.3f}")
+          f"barters={s['mean_barters_per_guild']:4.1f}  purchases={s['mean_purchases_per_guild']:4.1f}  "
+          f"specialty_spread={spread:.3f}")
     return s
 
 
 def sweep_loan_interest():
+    """Reports stdev_excluding_debt alongside plain score stdev, because
+    the two can diverge misleadingly: multiplying a fixed debt
+    distribution by a bigger constant necessarily widens plain score
+    stdev even if guild BEHAVIOR is completely unchanged (review
+    r1(PR#3)/F1 - none of this simulator's policies read the interest
+    rate when deciding anything, so there is no behavioral channel for
+    it to act through). If stdev_excluding_debt is flat across
+    multipliers while plain stdev isn't, that confirms the effect is
+    pure debt arithmetic, not a fairness-distorting mechanism - which is
+    exactly what happens here. See simulation/README.md."""
     print("\n=== Sweep A: loan interest multiplier (mixed policy) ===")
     base = GameConfig()
     mix = mixed_policy(base)

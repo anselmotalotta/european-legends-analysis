@@ -34,9 +34,12 @@ To answer questions the written analysis couldn't settle on its own, a
 of practice games and reports back what tends to happen — includes
 step-by-step instructions to run it yourself, no programming
 experience required. It's already changed one rule: loan interest was
-lowered from double to 1.5× after testing showed the original rate
-measurably widened the gap between stronger and weaker guilds. It also
-answered the trading question, with a twist — guilds do need to
+lowered from double to 1.5×, keeping a real penalty while choosing the
+gentler of the tested rates for a charity event — debt does scale with
+the rate as expected, though a closer check found the wider score
+spread at higher rates is just that same debt showing up in the final
+score, not a separate distorting effect. It also answered the trading
+question, with a twist — guilds do need to
 exchange items to do well, but skilled play satisfies that mostly
 through coin purchases rather than genuine back-and-forth barter, and
 testing found that simply restricting purchases doesn't fix that, it
@@ -63,10 +66,10 @@ That simulator went through the same discipline as the written analysis: three r
 
 ### What the simulation actually found
 
-Once the tool existed, we used it to settle the open questions with real numbers instead of guesswork — and it didn't just confirm what we expected, it corrected us twice.
+Once the tool existed, we used it to settle the open questions with real numbers instead of guesswork — and it didn't just confirm what we expected, it corrected us more than once, including one case where the correction was aimed at our own interpretation of the simulator's own output, not at the game.
 
 - **The recommended fixed room schedule isn't marginally better than leaving room choice open — it's the difference between every guild finishing the game and roughly one in three not.** Under the same play quality, the fixed schedule gets 100% of guilds through all four rooms; open scheduling gets only 38%, with meaningfully more debt for everyone caught out by it.
-- **Loans were quietly one of the least fair parts of the game.** Testing the loan penalty at different interest rates showed that the original "double" rate didn't just create more debt for guilds that needed a loan — it measurably widened the gap between guilds having a good game and guilds having a bad one. We lowered it to one and a half times the shortfall: still a real penalty, but a meaningfully fairer one, and this is now the adopted rule.
+- **Loan interest was lowered — and our first explanation for why was also wrong, caught by the same review process.** Testing different interest rates on the loan penalty showed debt scaling up with the rate exactly as expected (double the shortfall meant noticeably more debt than one and a half times it). It also looked, at first, like higher interest was independently making the game less fair overall — until a reviewer checked that claim specifically and showed it was an illusion: strip the debt back out of the final score, and the outcomes are identical no matter the interest rate, because nothing about how a guild plays actually changes based on the rate. So the real reason we lowered it to one and a half times the shortfall is simpler and more honest than we first wrote: it's a gentler penalty, chosen on its own merits for a charity event, backed by the real debt numbers — not evidence of some hidden distortion we'd discovered.
 - **Whether the game needs trading turned out to have a more interesting answer than "yes" or "no."** Guilds that play well *do* end up trading — more often, in fact, than guilds that play carelessly. But almost all of that "trading" turned out to be one guild simply paying another guild coins for what it needed, not a genuine back-and-forth swap. Our first instinct was that removing the option to pay coins would push guilds toward real bartering instead — a reasonable-sounding fix. We tested it. It was wrong: take away coin purchases and skilled guilds don't start bartering more, they just stop trading with each other almost entirely. We're reporting that correction here rather than quietly dropping the idea, because it's a good example of why this project insisted on testing ideas instead of just implementing whatever sounded right.
 - **A theorized "snowball" effect — the room winner always getting first pick of the reward, potentially letting one guild's early lead compound — tested as a non-issue.** Comparing winner-picks-first against loser-picks-first and random order showed no meaningful difference in fairness. So that rule was left exactly as originally written; not every plausible-sounding concern turns out to matter once you check.
 
