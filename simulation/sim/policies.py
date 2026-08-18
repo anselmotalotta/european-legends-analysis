@@ -93,7 +93,14 @@ class GreedyPolicy(AgentPolicy):
         # needed Tier-2 card (worth up to 15 to them); a spare Tier-2
         # item they don't need is a fairer, more credible offer.
         best_bait = max(spare, key=lambda item: I.SELL_PRICE[item])
-        return (next(iter(needed_items)), best_bait)
+        # Which needed item to go after first is a real policy decision
+        # (not yet a sophisticated one - just "alphabetically first" -
+        # but it must be a *fixed* rule). Found via review r1(PR#2)/F1:
+        # `next(iter(needed_items))` picked an element via Python's
+        # per-process string-hash order, so which item a guild pursued -
+        # and therefore the resulting trade volume - silently varied
+        # between runs of the identical seeded model.
+        return (min(needed_items), best_bait)
 
     def accept_trade(self, guild, item_offered_to_me, item_they_want, unvisited_rooms, config, rng):
         my_cost = self.room_access_value(guild, item_they_want, unvisited_rooms, config)
@@ -107,7 +114,7 @@ class GreedyPolicy(AgentPolicy):
         price = config.room_coin_fallback_fee  # never worse than just paying the GM
         if guild.coins < price:
             return None
-        return (next(iter(needed_items)), price)
+        return (min(needed_items), price)  # deterministic pick - see seek_trade
 
     def accept_purchase(self, guild, item_wanted, coins_offered, unvisited_rooms, config, rng):
         my_cost = self.room_access_value(guild, item_wanted, unvisited_rooms, config)

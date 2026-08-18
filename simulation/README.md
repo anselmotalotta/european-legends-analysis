@@ -109,15 +109,19 @@ like this, printed three times (once for each mix of "smart" and
 
   --- fixed_rotation ---
   Ran 500 practice games.
-  Average final score across all guilds: 66.8 coins (lowest game: 12, highest: 121).
+  Average final score across all guilds: 66.5 coins (lowest game: 3, highest: 119).
   All 8 guilds visited all 4 rooms in 100% of games.
-  On average, each guild made 2.5 trades with other guilds (7% of guilds made no trades at all).
-  On average, each guild took out 0.2 loan(s), ending the game owing 1.3 coins in debt.
+  On average, each guild made 2.7 exchanges with other guilds - swaps or coin purchases - (7% of guilds made none at all).
+  On average, each guild took out 0.2 loan(s), ending the game owing 1.5 coins in debt.
 
   --- free_choice ---
   Ran 500 practice games.
   ...
 ```
+
+This exact output is what you should see if you run it yourself — the
+simulator is fully reproducible, so your numbers should match these
+precisely, not just roughly.
 
 Each block compares two versions of the rules side by side — in the
 example above, **"fixed_rotation"** is the recommended room-scheduling
@@ -188,11 +192,11 @@ python3 -m pytest tests/ -v
 
 ### Findings from this version so far (illustrative, not final)
 
-400-game batches, paired seeds:
+500-game batches, paired seeds — these are the exact numbers `python3 -m sim.experiment` prints (see the example output above):
 
-- **The fixed room rotation reaches 100% room completion by construction**, vs. ~37% for free-choice scheduling under the same policies — reproducing the standalone toy model's ~38.2% finding inside the full economic engine.
-- **Trading happens under rational play, but far less than under casual play.** All-greedy: mean 2.7 trades/guild, 5% of guilds finish with zero trades. The self-sufficient "solo chaining" mechanism from analysis §2.5 is real and reduces reliance on trading, but doesn't eliminate it once a coin side-payment can bridge the gap between a needed item's value and a seller's liquidation value for it.
-- **Casual and mixed policy mixes produce meaningfully more loan debt than all-greedy play** (mean debt/guild: ~13 casual vs. ~1.3 greedy).
+- **The fixed room rotation reaches 100% room completion by construction**, vs. 38% for free-choice scheduling under the same policies — reproducing the standalone toy model's ~38.2% finding inside the full economic engine.
+- **Trading happens under rational play, but far less than under casual play.** All-greedy: mean 2.7 exchanges/guild, 7% of guilds finish with none. The self-sufficient "solo chaining" mechanism from analysis §2.5 is real and reduces reliance on trading, but doesn't eliminate it once a coin side-payment can bridge the gap between a needed item's value and a seller's liquidation value for it. ("Exchanges" here means barter swaps and coin purchases combined, not barter alone — see the not-yet-done note above about splitting this metric.)
+- **Casual and mixed policy mixes produce meaningfully more loan debt than all-greedy play** (mean debt/guild: 13.1 casual vs. 1.5 greedy, fixed rotation).
 - **Specialty win-rate is not stable across policy mixes** in this version — which specialty leads changes depending on the policy mix, more consistent with noise or a mix-dependent interaction than a fixed structural bias, but not yet explained (§8 item 8).
 
 ### Review history

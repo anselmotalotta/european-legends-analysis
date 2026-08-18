@@ -67,8 +67,12 @@ def print_human_summary(report, mix_name):
         print(f"  Average final score across all guilds: {summary['score']['mean']:.1f} coins "
               f"(lowest game: {summary['score']['min']}, highest: {summary['score']['max']}).")
         print(f"  All 8 guilds visited all 4 rooms in {summary['pct_games_all_guilds_complete']:.0f}% of games.")
-        print(f"  On average, each guild made {summary['mean_trades_per_guild']:.1f} trades with other guilds "
-              f"({summary['pct_guilds_zero_trades']:.0f}% of guilds made no trades at all).")
+        # "Trades" here is swaps and coin purchases combined (metrics.py
+        # doesn't separate them yet - see simulation/README.md's
+        # not-yet-done list) - worded as "exchanges" so it doesn't read
+        # as bartering specifically (review r1(PR#2)/F3).
+        print(f"  On average, each guild made {summary['mean_trades_per_guild']:.1f} exchanges with other guilds "
+              f"- swaps or coin purchases - ({summary['pct_guilds_zero_trades']:.0f}% of guilds made none at all).")
         print(f"  On average, each guild took out {summary['mean_loans_per_guild']:.1f} loan(s), "
               f"ending the game owing {summary['mean_debt_per_guild']:.1f} coins in debt.")
     print()
