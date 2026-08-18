@@ -31,8 +31,15 @@ def test_F2_barter_and_purchase_counts_are_tracked_separately():
 
 
 def test_F2_disabling_purchases_actually_removes_transactions_not_zero_either_way():
-    """The corrected claim: purchases-off has 0 transactions, purchases-on
-    does not (it was wrongly described as "0 either way")."""
+    """The corrected claim: purchases-off has fewer transactions than
+    purchases-on (it was wrongly described as "0 either way"). After the
+    R8 starting-hand fix (see test_review_pr3_r3_starting_hand_fix.py),
+    purchases-off is no longer 0 either - the corrected hand assignment
+    gives guilds genuinely complementary Tier-1 surpluses, so barter can
+    clear on its own when coin purchases aren't available as a shortcut.
+    That's a real, positive side effect of the fix, not a bug: the old
+    "barter never clears" finding was itself partly an artifact of the
+    lopsided starting-hand assignment this PR corrects."""
     config_on = GameConfig()
     config_off = dataclasses.replace(config_on, allow_coin_purchases=False)
     mix = all_greedy_mix(config_on)
@@ -41,10 +48,12 @@ def test_F2_disabling_purchases_actually_removes_transactions_not_zero_either_wa
     results_off = run_batch(config_off, mix, n_trials=50, seed_start=0)
 
     total_on = sum(g.trade_count for r in results_on for g in r.guilds.values())
-    total_off = sum(g.trade_count for r in results_off for g in r.guilds.values())
+    total_off_purchases = sum(g.purchase_count for r in results_off for g in r.guilds.values())
+    total_off_barters = sum(g.barter_count for r in results_off for g in r.guilds.values())
 
     assert total_on > 0
-    assert total_off == 0
+    assert total_off_purchases == 0  # disabling purchases must still remove all purchases
+    assert total_off_barters > 0     # but barter now genuinely substitutes for some of them
 
 
 def test_F1_score_stdev_excluding_debt_is_unaffected_by_loan_interest():

@@ -9,7 +9,8 @@
 | Change | Why |
 |---|---|
 | **Room visits now follow a fixed, pre-assigned rotation** (§7) instead of open scheduling | The original left room choice to guilds racing for slots with zero spare capacity (4 rooms × 2 slots = exactly 8 guilds); unmanaged, that fails to complete for a meaningful fraction of guilds. The fixed rotation guarantees every guild visits every room exactly once, against a different opponent each round. |
-| **Starting Tier-1 kits are now assigned, not fully random** (§6) | Coordinated so every guild's opening hand can pay its Round-1 room fee without needing a loan on turn one. Still looks and feels random to players — they don't know in advance which two of their three items they'll get, only which one they won't. |
+| **Starting Tier-1 kits are now assigned, not fully random** (§10) | Coordinated so every guild's opening hand can pay its Round-1 room fee without needing a loan on turn one. Still looks and feels random to players — they don't know in advance which two of their three items they'll get, only which one they won't. |
+| **The starting-kit assignment now also fixes a real fairness gap** (§10) | A [second requirement](corrected-ruleset-v2.md#10-starting-items-and-coins-corrected) was added to the assignment above: each guild's own Tier-1 specialty must pair with 2 of its 3 hand types for crafting, not just 1. Testing found the earlier version — which satisfied only the Round-1 requirement and left the rest to chance — gave 4 of 8 guilds a 2-partner hand and left the other 4 with only 1, producing a measured **7.2× spread in how often a guild wins under otherwise identical play**, purely depending on which guild it was. With both requirements satisfied together, the spread drops to noise level (~1.8× at 2000 games, consistent with ordinary 8-way sampling variance) in testing. See [`simulation/README.md`](../simulation/README.md#findings-from-this-version-so-far-illustrative-not-final) for the investigation and the fix's verification. |
 | **The quest scoring section no longer contradicts itself** (§9) | The original had a generic "0/2/4/6/8/10" scoring rule that conflicted with several individual quests' own scoring tables. This version scores every quest by its own stated table only. |
 | **Loan mechanics are stated precisely, and the interest rate is lowered** (§8) | Clarified that a loan covers only the coin *shortfall* for a room fee, not the full 15-coin fee. The repayment rate is also lowered from double the shortfall to **one and a half times** it. A [tuning comparison](../simulation/README.md#tuning-sweep-what-the-numbers-actually-support) checked whether a lower rate is also a fairness fix, not just a gentler one — it isn't: neither the score-spread widening nor the debt totals at higher interest rates turn out to be independent evidence of anything, since no simulated guild plays any differently depending on the rate, and the number of loans taken is identical regardless of it. **So 1.5× is a plain values choice for a charity event** — the right call, but not something the simulation proved was necessary. |
 | **Reward-card and payment-method questions are resolved** (§8) | Paying a room's fee in coins now explicitly still earns a reward Tier-2 card, same as paying in items. The reward pool of 3 cards is explicitly one pool shared by both guilds in the room, cards removed as each guild picks. |
@@ -20,8 +21,7 @@
 Two things are deliberately **not** changed here, and still need your input or further testing before the event:
 
 - **Guild special items and unique quests** (§6, §11) are still placeholders — same as the original, these need to be finalized.
-- **Whether the game's trading incentives serve the event's networking purpose specifically** is still genuinely open, not settled. An earlier round of testing reported that skilled play satisfies most of its need to trade through coin purchases rather than barter — that reading has since been retracted: the simulator that produced it can't yet model price negotiation or the crafting-material trades the rules actually create, so it isn't capable of answering this question either way yet. This ruleset keeps coin purchases between guilds as written for now, but that's a "no evidence for changing it" call, not a "tested and confirmed fine" one. See the [simulation](../simulation/) for the detail.
-- **A large, unexplained gap in how often different guilds win under identical play was found (7.2×, best guild to worst) and has not been resolved.** It doesn't correlate with production specialty, and several likely causes in the rotation/starting-hand design have been checked and ruled out without finding the actual cause. Until this is understood, **treat the §7 rotation table and §6 starting-hand assignment as functionally verified for room-capacity fairness (100% completion, confirmed and stable across every review) but not yet verified for outcome fairness** — whether some guilds are structurally more likely to win regardless of how well their team plays. If time allows before 17 September, this should be investigated further; if not, it's worth being transparent with participants that guild assignment has an unquantified effect on winning odds. See `simulation/README.md`'s Findings section for the investigation so far.
+- **Whether the game's trading incentives serve the event's networking purpose specifically** is still genuinely open, not settled. An earlier round of testing reported that skilled play satisfies most of its need to trade through coin purchases rather than barter — that reading has since been retracted: the simulator that produced it can't yet model price negotiation or the crafting-material trades the rules actually create, so it isn't capable of answering this question either way yet. This ruleset keeps coin purchases between guilds as written for now, but that's a "no evidence for changing it" call, not a "tested and confirmed fine" one. Interestingly, the starting-kit fix above appears to have partly reopened this on its own — genuine barter (not just coin purchase) started clearing in testing once guilds had complementary rather than lopsided surpluses, something that never happened before the fix. Worth another look once the trading-model gaps above are addressed. See the [simulation](../simulation/) for the detail.
 
 ---
 
@@ -98,14 +98,21 @@ Items would be also required to participate in the common quests (and more items
 
 Each guild receives 3 random Tier-1 items and 10 coins at the beginning of the game, as well as a scoresheet for quests and a small bag for items.
 
-**The 3 starting items are not fully random** — each guild's kit always includes 3 of the 4 Tier-1 types (always missing exactly one type), and *which* type is missing is chosen so that every guild can craft, from its own opening hand, the exact Tier-2 item its Round-1 room requires (§7). This still looks and plays as a random deal to guilds — they aren't told in advance which one material they'll be missing, only that they have three of the four.
+**The 3 starting items are not fully random** — each guild's kit always includes 3 of the 4 Tier-1 types (always missing exactly one type), and *which* type is missing is chosen to satisfy two requirements, not just one. This still looks and plays as a random deal to guilds — they aren't told in advance which one material they'll be missing, only that they have three of the four.
 
-| Guild(s) | Round-1 room needs | Starting hand should be missing |
-|---|---|---|
-| Lisbon, Stockholm | Cloth (Flax+Saltpetre) | Wax or Charcoal |
-| Bursa, Ghent | Dye (Wax+Charcoal) | Flax or Saltpetre |
-| Gdansk, Prague | Black Powder (Charcoal+Saltpetre) | Flax or Wax |
-| Venice, Vienna | Candle (Flax+Wax) | Charcoal or Saltpetre |
+1. Every guild must be able to craft, from its own opening hand, the exact Tier-2 item its Round-1 room requires (§7). An earlier version of this table left this as the *only* requirement, with either of two choices marked as acceptable per pair of guilds.
+2. **Every guild's own Tier-1 specialty (produced every round — §9) must be usable in crafting alongside 2 of the 3 remaining hand types, not just 1.** Simulation testing found this second requirement matters a great deal: leaving it unenforced (as the earlier version of this table did) meant half the guilds could only ever use one incoming batch of their own production before the rest became dead stock worth 1 coin each, while the other half could keep converting all game — a **7.2× spread in how often a guild wins, purely depending on which guild it was**, with identical play. Both requirements are satisfiable together for every guild; there is exactly one correct choice per guild once you require both, not a free "either" choice.
+
+| Guild | Own specialty | Round-1 room needs | Starting hand missing |
+|---|---|---|---|
+| Lisbon | Wax | Cloth (Flax+Saltpetre) | Wax |
+| Stockholm | Flax | Cloth (Flax+Saltpetre) | Charcoal |
+| Bursa | Wax | Dye (Wax+Charcoal) | Saltpetre |
+| Ghent | Flax | Dye (Wax+Charcoal) | Flax |
+| Gdansk | Saltpetre | Black Powder (Charcoal+Saltpetre) | Wax |
+| Prague | Charcoal | Black Powder (Charcoal+Saltpetre) | Flax |
+| Venice | Saltpetre | Candle (Flax+Wax) | Saltpetre |
+| Vienna | Charcoal | Candle (Flax+Wax) | Charcoal |
 
 ## 11. Trading items and selling prices
 

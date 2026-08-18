@@ -34,21 +34,20 @@ def test_R8_win_rate_is_reported_per_guild_not_only_per_specialty():
     assert set(s["win_rate_by_guild"]) == set(config.guild_names)
 
 
-def test_R8_per_guild_disparity_is_real_and_survives_reversed_processing_order():
-    """Confirms R8 is a real structural effect, not an artifact of this
-    engine's shared sequential RNG stream. If it were an RNG-consumption-
-    order artifact, reversing which room is processed first within a
-    round would change the ranking. It doesn't (verified by hand during
-    review; this test pins the qualitative fact that a large spread
-    exists, as a regression guard - the specific ranking is not asserted
-    since it's sensitive to unrelated code changes elsewhere)."""
+def test_R8_per_guild_disparity_is_now_small_after_the_starting_hand_fix():
+    """R8's 7.2x per-guild win-rate spread was root-caused (review r7 on
+    PR #3) to COORDINATED_MISSING_MATERIAL leaving 4 of 8 guilds with only
+    1 usable Tier-1 recipe partner in their starting hand instead of 2 -
+    see test_review_pr3_r3_starting_hand_fix.py for the fix itself. This
+    regression guard now pins the opposite qualitative fact: the fixed
+    assignment brings the spread down to noise-level (well under the old
+    3.4x-7.2x range measured before the fix), not the removed test's
+    ">2.0x, confirmed real" assertion."""
     config = GameConfig()
     results = run_batch(config, all_greedy_mix(config), n_trials=200, seed_start=0)
     s = summarize(results)
     rates = s["win_rate_by_guild"].values()
-    # Confirmed real: roughly 3-8x spread between the best and worst guild
-    # under identical policy. This is NOT expected to be ~1x (fair).
-    assert max(rates) / max(min(rates), 0.001) > 2.0
+    assert max(rates) / max(min(rates), 0.001) < 3.5
 
 
 def test_R5_loan_debt_scaling_is_the_same_shortfalls_times_a_constant():
@@ -68,16 +67,23 @@ def test_R5_loan_debt_scaling_is_the_same_shortfalls_times_a_constant():
 
 
 def test_R7_tier1_production_is_never_used_by_greedy_policy():
-    """review R7: guilds end the game holding ~100% of their own Tier-1
+    """review R7: guilds end the game holding most of their own Tier-1
     production unused, because seek_trade only ever targets room-entry
     Tier-2 prerequisites, never complementary Tier-1 materials for
-    crafting. Confirmed and left as a known, documented limitation
-    (not fixed in this PR - tracked as follow-up)."""
+    crafting. Confirmed and left as a known, documented limitation (not
+    fixed in this PR - tracked as follow-up). The exact leftover amount
+    changed as a side effect of the R8 starting-hand fix
+    (test_review_pr3_r3_starting_hand_fix.py): previously 4 of 8 guilds
+    (mean leftover 7.0) had only 1 usable recipe partner and 4 had 2
+    (mean leftover 5.0); now every guild has 2, so leftover is uniformly
+    5.0 - smaller and more even, but still most of a guild's production
+    goes unused."""
     config = GameConfig()
     results = run_batch(config, all_greedy_mix(config), n_trials=50, seed_start=0)
     leftover = [
         sum(qty for item, qty in g.inventory.items() if item in I.TIER1)
         for r in results for g in r.guilds.values()
     ]
-    # Production is 1+2+3=6 units/guild; confirmed close to fully unused.
-    assert sum(leftover) / len(leftover) > 5.0
+    # Production alone is 1+2+3=6 units/guild; confirmed most of it still
+    # goes unused even after the R8 fix.
+    assert sum(leftover) / len(leftover) >= 4.5
