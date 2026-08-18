@@ -20,6 +20,57 @@ skill levels), the same way you might playtest a board game hundreds
 of times to see how balanced it is, except a computer can do it in
 seconds instead of months.
 
+## Exactly what gets simulated
+
+Each "practice game" the computer plays follows the same shape as the
+real event, simplified down to the parts that affect who wins and by
+how much:
+
+1. **Setup.** Each of the 8 guilds gets its starting materials and 10
+   coins, following the [rules](../analysis/corrected-ruleset-v2.md).
+2. **Four rounds, each with an activity room and a trading break.**
+   In each round, every guild visits one of the four themed rooms
+   (following the fixed room schedule from the rules), pays its entry
+   fee, and "does" the room's two quests. The simulator doesn't
+   actually generate music quizzes or puzzles — instead, each guild is
+   given a random skill level for that room (representing how good
+   that mix of 5 real people happens to be at that kind of challenge)
+   and scored using the room's real scoring table from the rules. This
+   is deliberately a simplification: the point of this tool is to test
+   the *economy* (trading, crafting, debt), not to predict trivia
+   scores.
+3. **Between rounds, guilds produce, craft, and trade.** Each guild
+   makes more of its own raw material, converts materials into more
+   valuable goods where it makes sense to, and — depending on how
+   "smart" that guild is playing (see below) — tries to trade or buy
+   what it's missing from other guilds.
+4. **Guilds that come up short take a loan** from the Game Master,
+   exactly as the real rules describe, and owe it back double at the
+   end.
+5. **At the end, everything is added up**: leftover coins, plus
+   whatever items a guild is still holding (sold at the rules' stated
+   prices), minus any loan debt. Highest total wins that practice
+   game.
+
+The simulator plays this out 500 times per comparison (with small
+random differences each time, like real luck would produce) and
+reports back the *averages and patterns* across all 500 — one single
+practice game doesn't tell you much, but 500 of them tell you how the
+game tends to go.
+
+**Two kinds of guild behavior are tested side by side**, because how
+well people play matters:
+- **"Greedy" guilds** play thoughtfully — they hold onto items they'll
+  need for upcoming rooms instead of selling them too early, and they
+  actively look for good trades.
+- **"Casual" guilds** play more carelessly — they convert items into
+  more valuable ones as soon as they can without thinking ahead, and
+  rarely bother trading.
+
+Every run tests three mixes of these — all guilds playing "greedy,"
+all playing "casual," and a 50/50 mix — since a real event will have a
+mix of experienced and first-time players.
+
 ## What it's for
 
 The [written rules analysis](../analysis/game-balance-analysis.md)
@@ -123,12 +174,42 @@ This exact output is what you should see if you run it yourself — the
 simulator is fully reproducible, so your numbers should match these
 precisely, not just roughly.
 
-Each block compares two versions of the rules side by side — in the
-example above, **"fixed_rotation"** is the recommended room-scheduling
-rule from the written analysis, and **"free_choice"** is what happens
-if teams are just left to pick rooms on their own. Reading down the
-two blocks tells you which version actually works better, and by how
-much.
+### Step 6 — Understanding what you're looking at
+
+The output is organized in three layers. Here's how to read it, using
+the example above:
+
+**1. "Policy mix"** — which of the three guild-behavior mixes (see
+above) is being tested. You'll see this three times: `all-greedy`,
+`all-casual`, and `mixed`. Compare across these three blocks to see
+how much *player skill/behavior* changes the outcome, independent of
+the rules themselves.
+
+**2. Inside each policy mix, two rule versions side by side** —
+`fixed_rotation` (the recommended room-scheduling rule from the
+written rules analysis) and `free_choice` (what happens if guilds are
+just left to pick their own rooms, with no schedule). Both are run
+under *identical* random luck (same starting hands, same skill draws)
+so any difference between them is caused by the rule change itself,
+not by one side getting luckier. Comparing these two tells you whether
+a specific rule change actually helps.
+
+**3. Five numbers per rule version**, in plain terms:
+
+| Line | What it tells you |
+|---|---|
+| "Ran 500 practice games" | How many times this exact setup was played out |
+| "Average final score" | Roughly how many coins the typical guild ends with — higher is better, and the range (lowest/highest) shows how much luck alone can swing a result |
+| "visited all 4 rooms in X% of games" | How often *every* guild manages to complete the whole game without getting shut out of a room — this is the number that shows whether the room-scheduling rule is actually fair |
+| "made N exchanges with other guilds" | How much trading actually happens — this is the number that speaks to the open question "do guilds need to trade to do well?" |
+| "took out N loan(s)... owing N coins in debt" | How often guilds run short on coins and end up starting the game behind |
+
+**Putting it together for the example above:** under thoughtful
+("greedy") play, the recommended fixed room schedule gets every guild
+through the whole game (100%) and keeps debt low (1.5 coins), while
+leaving the schedule open (`free_choice`) drops full completion to
+38% and pushes average debt up sharply — a concrete, numeric reason to
+use the fixed schedule rather than open scheduling at the real event.
 
 ### Something not working?
 
