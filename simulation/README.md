@@ -160,10 +160,10 @@ like this, printed three times (once for each mix of "smart" and
 
   --- fixed_rotation ---
   Ran 500 practice games.
-  Average final score across all guilds: 66.5 coins (lowest game: 3, highest: 119).
+  Average final score across all guilds: 66.8 coins (lowest game: 9, highest: 119).
   All 8 guilds visited all 4 rooms in 100% of games.
   On average, each guild made 2.7 exchanges with other guilds - swaps or coin purchases - (7% of guilds made none at all).
-  On average, each guild took out 0.2 loan(s), ending the game owing 1.5 coins in debt.
+  On average, each guild took out 0.2 loan(s), ending the game owing 1.2 coins in debt.
 
   --- free_choice ---
   Ran 500 practice games.
@@ -206,7 +206,7 @@ a specific rule change actually helps.
 
 **Putting it together for the example above:** under thoughtful
 ("greedy") play, the recommended fixed room schedule gets every guild
-through the whole game (100%) and keeps debt low (1.5 coins), while
+through the whole game (100%) and keeps debt low (1.2 coins), while
 leaving the schedule open (`free_choice`) drops full completion to
 38% and pushes average debt up sharply — a concrete, numeric reason to
 use the fixed schedule rather than open scheduling at the real event.
@@ -255,7 +255,8 @@ nothing concrete to simulate yet.
 - `sim/engine.py` — the round-by-round game loop.
 - `sim/metrics.py` — aggregate statistics across many games.
 - `sim/experiment.py` — comparative batch runner (`--json` flag prints raw data instead of the plain-English summary).
-- `tests/` — pytest suite (32 tests) covering recipes, rotation integrity, loan math, end-to-end engine behavior, and review fixes.
+- `sim/tuning_sweep.py` — the loan-interest / coin-purchase / reward-pick-order comparison behind the "Tuning sweep" section below.
+- `tests/` — pytest suite (37 tests) covering recipes, rotation integrity, loan math, end-to-end engine behavior, and review fixes.
 
 Run the test suite with:
 ```
@@ -268,8 +269,8 @@ python3 -m pytest tests/ -v
 - Guild-special items and unique quests (§2.6), once finalized in the source.
 - A more thorough trade-matching mechanism (still one attempt per guild per break, across two instruments — barter and coin purchase).
 - Explaining the specialty win-rate spread noted below (§8 item 8) rather than just reporting it.
-- The full §8 design-variant sweep (loan interest, Tier-3 prices, reward-pick-order, mandatory trading windows) - `sim/experiment.py` and `sim/config.py`'s `reward_pick_order` support this now, but only the rotation comparison is wired up as a worked example.
-- A separate `Guild.purchase_count` distinct from `trade_count`: right now barter swaps and coin purchases both increment the same counter, so "trades" in the metrics is really barter+purchases combined.
+- Two of §8's design variants — Tier-3 prices and mandatory trading windows — aren't swept yet (loan interest, coin-purchase availability, and reward-pick-order now are, see below).
+- A separate `Guild.purchase_count` distinct from `trade_count`: right now barter swaps and coin purchases both increment the same counter, so "trades" in the metrics is really barter+purchases combined. Worked around by hand-instrumenting for the tuning sweep below, but should be a real metric.
 
 ### Findings from this version so far (illustrative, not final)
 
@@ -277,8 +278,37 @@ python3 -m pytest tests/ -v
 
 - **The fixed room rotation reaches 100% room completion by construction**, vs. 38% for free-choice scheduling under the same policies — reproducing the standalone toy model's ~38.2% finding inside the full economic engine.
 - **Corrected finding, superseding an earlier version of this line:** rational ("greedy") guilds exchange *more* often than casual ones (2.7/guild vs. 1.4/guild), not less — but instrumenting the split (barter vs. coin purchase) that the metric doesn't separate yet reveals why, and it matters: **under all-greedy play, essentially 100% of those exchanges are coin purchases and ~0% are barter swaps** (0 barters observed in a 200-game sample). Under all-casual play, it's a roughly even mix of both. In other words, "smart" guilds mostly buy their way to what they need with coins rather than negotiate a swap with another guild — solo chaining (§2.5) plus a coin side-payment is usually enough on its own, so the genuinely networking-relevant behavior (a two-sided barter that requires actually talking to another guild) is more common under *casual* play, even though total transaction count is higher under greedy play. This is a meaningfully different answer to "does the economy need trading?" than either "yes" or "no" — it needs *some* form of exchange, but rational play satisfies that with money, not negotiation, which matters if the goal is the event's stated networking purpose specifically.
-- **Casual and mixed policy mixes produce meaningfully more loan debt than all-greedy play** (mean debt/guild: 13.1 casual vs. 1.5 greedy, fixed rotation).
+- **Casual and mixed policy mixes produce meaningfully more loan debt than all-greedy play** (mean debt/guild: 10.3 casual vs. 1.2 greedy, fixed rotation).
 - **Specialty win-rate is not stable across policy mixes** in this version — which specialty leads changes depending on the policy mix, more consistent with noise or a mix-dependent interaction than a fixed structural bias, but not yet explained (§8 item 8).
+
+### Tuning sweep: what the numbers actually support
+
+The findings above raised two live questions: is the loan interest rate too harsh, and would restricting coin purchases push guilds toward more genuine barter? Rather than guess, both were tested directly with `sim/tuning_sweep.py` — 400-game batches, common random numbers across every variant compared, so differences reflect the rule change, not luck.
+
+**Loan interest (mixed player skill):**
+
+| Multiplier | Mean debt/guild | Score std. dev. |
+|---|---|---|
+| 1.0× (no penalty) | 3.6 | 20.0 |
+| **1.5×** | **5.6** | **22.2** |
+| 2.0× (original) | 7.1 | 24.4 |
+
+Higher interest doesn't just mean more debt — it measurably widens the overall score spread, i.e. makes the game less fair. **Conclusion: lowered to 1.5× in the corrected ruleset.** 1.0× (no penalty at all) wasn't adopted despite testing best, because none of this simulator's agent policies model a guild *deliberately* exploiting a penalty-free loan — that risk isn't ruled out by this data, so 1.5× is the more conservative choice: a real but reduced penalty.
+
+**Coin purchases between guilds, allowed vs. disabled:**
+
+| | Exchanges/guild | (of which barter) |
+|---|---|---|
+| All-greedy, purchases allowed | 2.7 | 0.0 |
+| All-greedy, purchases disabled | 0.0 | 0.0 |
+| All-casual, purchases allowed | 1.4 | ~0.7 |
+| All-casual, purchases disabled | 0.8 | 0.8 |
+
+This is the finding that overturned the obvious-sounding fix: disabling purchases doesn't convert skilled guilds' coin-based exchanges into barter — it just removes the exchange, full stop, because a rational guild's barter offer rarely clears on its own (same shadow-value-vs-liquidation-value gap as §2.2). **Conclusion: no change** — removing purchases would make skilled guilds interact with each other *less*, the opposite of the goal.
+
+**Reward-pick order (winner-first vs. loser-first vs. random):** score standard deviation was 24.4 / 24.0 / 24.2 — no meaningful difference, and specialty spread was, if anything, slightly worse under loser-first. **Conclusion: no change** — this rule isn't a real lever on the fairness question, despite looking like a plausible one on paper.
+
+Reproduce all three with `python3 -m sim.tuning_sweep`.
 
 ### Review history
 

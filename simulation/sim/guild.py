@@ -1,4 +1,5 @@
 """Guild state during a simulated game."""
+import math
 from collections import Counter
 from dataclasses import dataclass, field
 
@@ -30,7 +31,10 @@ class Guild:
             del self.inventory[item]
 
     def take_loan(self, shortfall, multiplier):
-        self.loans.append(shortfall * multiplier)
+        # Rounded up to the nearest whole coin (corrected-ruleset-v2.md §14)
+        # - repayment must be payable in physical coins at a live event,
+        # and rounding up (not down) means the bank is never undercharged.
+        self.loans.append(math.ceil(shortfall * multiplier))
 
     def total_debt(self):
         return sum(self.loans)

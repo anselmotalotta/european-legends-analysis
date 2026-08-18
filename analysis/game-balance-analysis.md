@@ -131,6 +131,8 @@ Two open questions this surfaces: **does a guild that pays the 15-coin fallback 
 
 `[Open — needs simulation]` The stronger claim in the first draft — *"a guild can be mathematically eliminated from contention by round 2 without any player mistake"* — was asserted without supporting math and should be treated as an open hypothesis, not a finding. The honest version: **loans can create negative feedback (weaker guilds risk taking on more debt, which weakens them further), but how severe that feedback loop actually is depends on quantities the written rules don't fully pin down (whether coin-payers get reward items, how often the 15-coin path is actually needed) and needs to come from the simulation, not from reading the rules alone.** Loans are also not the only such mechanism — see §2.7.
 
+`[Derived from simulation]` **Update, once the simulator existed to actually test this:** a paired comparison of loan interest multipliers (1.0×, 1.5×, 2.0×, 400-game batches, mixed player skill, common random numbers across all three) shows the negative-feedback concern above is real and measurable, not just theoretical. Average debt per guild scales with the multiplier (3.6 → 5.6 → 7.1 coins across the three rates), and — more importantly for fairness — so does overall score spread (standard deviation 20.0 → 22.2 → 24.4), meaning the current double-interest rate produces the *most* inequality of the three rates tested, not just the most debt. **This is now reflected in [the corrected ruleset](corrected-ruleset-v2.md#14-quest-participation-fee-corrected): loan interest is lowered from double to 1.5× the shortfall**, which keeps a real penalty (it is not free to borrow) while measurably reducing both effects. See [`simulation/README.md`](../simulation/README.md#tuning-sweep-what-the-numbers-actually-support) for the full sweep. Not tested: whether removing the interest penalty entirely (1.0×) creates a different problem — none of this project's agent policies model deliberately exploiting a penalty-free loan, so that risk can't be ruled out by this data.
+
 ### 2.5 The central open question: does this economy actually require trading?
 
 `[Open — needs simulation]` This is arguably the most important thing the first draft missed, and it cuts against one of its own "what's working well" claims (that the recipe cycle "forces genuine cross-guild trading").
@@ -140,6 +142,10 @@ Two open questions this surfaces: **does a guild that pays the 15-coin fallback 
 This isn't guaranteed to work every time, though, and the reason why is itself an interesting design detail: **each room seats 2 guilds sharing one reward pool of 3 cards.** The winner picks first. If both guilds in a room happen to want the same next-room item, the loser is forced to take something else — which creates pressure to trade or fall back to a coin payment, though not strictly a requirement to: the guild could instead craft the needed item itself later from its own Tier‑1 production, if time and materials allow. So scarcity, and therefore the incentive to trade, may be concentrated entirely in these two-guild reward collisions, rather than being a constant pressure created by the recipe graph itself as originally claimed.
 
 Given that networking is an explicit stated purpose of the event, **whether the current rules create enough scarcity to make trading necessary — or whether a self-sufficient "solo chaining" strategy can win without ever talking to another guild — should be one of the first things the simulation measures**, ahead of any tuning of loan interest or Tier‑3 prices. The "recipe graph forces trading" claim is removed from §6 below pending that result.
+
+`[Derived from simulation]` **Update, now that the simulator can test this:** the answer turns out to be more specific than "yes" or "no." Under skilled ("greedy") play, guilds do transact with each other — more often, in fact, than under careless ("casual") play (2.7 vs. 1.4 exchanges per guild) — but instrumenting *which kind* of exchange happens (not yet a standard metric, checked by hand) shows that under skilled play essentially **all of it is coin purchases, not item-for-item barter** (0 barter trades observed in a 200-game sample; casual play splits roughly evenly between the two). Solo chaining plus a coin side-payment is enough to satisfy a skilled guild's needs without ever negotiating a swap with another guild.
+
+This matters specifically because of the networking purpose: a coin purchase is a much thinner interaction than a barter negotiation. The natural next question — would removing coin purchases between guilds force genuine barter instead? — was tested directly, and **the answer is no**: disabling coin purchases doesn't convert that activity into barter, it mostly just removes the exchange entirely for skilled guilds (their barter mechanism rarely clears on its own, for the same shadow-value-vs-liquidation-value reason discussed in §2.2 — a rational partner won't give up something it needs for something it doesn't). So restricting purchases isn't a supported fix; if the networking goal needs a stronger mechanism, it likely needs a different lever than this one, not yet identified. See `simulation/README.md` for the full comparison.
 
 ### 2.6 Guild special items and unique quests are marked "in elaboration"
 
@@ -158,6 +164,8 @@ The first draft treated loan debt as *the* negative-feedback mechanism in this g
 `[Derived]` This is also why the §1 rotation fix mattered beyond just capacity: the original (flawed) rotation paired every guild against the same opponent all 4 rounds, which would have let this compounding advantage snowball against one specific weaker guild all game — win once, get the bonus and first pick, arrive stronger at the rematch, win again. The corrected rotation (different opponent every round) doesn't eliminate the compounding mechanism itself, but at least stops it from concentrating repeatedly against a single guild.
 
 One concrete, testable alternative worth including in the simulation rather than just flagging: **a rubber-banding variant where the room-losing guild picks its reward card first instead of the winner.** This wouldn't need to be adopted, but comparing final-score variance under winner-first vs. loser-first vs. random-order selection (§8) would directly measure how much of this snowball is attributable to this one rule, versus the +5 bonus or loans.
+
+`[Derived from simulation]` **Update, now tested:** the rubber-banding variant was run (winner-first vs. loser-first vs. random reward-pick order, 400-game batches, mixed play, common random numbers). It made essentially no measurable difference — score standard deviation was 24.4 / 24.0 / 24.2 across the three, well within noise, and specialty win-rate spread was, if anything, slightly *worse* under loser-first (0.355) than winner-first (0.295). **No rule change is recommended here**: whatever is driving score inequality in this game, the reward-pick-order rule isn't a major lever for it on its own — the loan-interest rate (§2.4) turned out to matter far more. The ruleset is left as originally written (winner picks first) on this point.
 
 ---
 
@@ -275,20 +283,20 @@ Building the full agent-based model against this plan is the next step once §4'
 
 ## 9. Priority order for fixes
 
-Revised to reflect the corrections above:
+Original priority order, now with status — everything that could be resolved by writing or simulation has been:
 
-1. **Use the corrected room/opponent rotation** (§1) — it satisfies room capacity *and* opponent diversity together; the first version only did the former, and shouldn't be implemented as originally written.
-2. **Correct understanding of starting hands** (§2.1) before designing any kit-dealing rule, and coordinate the deal with the rotation from #1 — the two-recipe choice changes what "controlling" the starting deal can and can't achieve.
-3. **Model Tier‑2 items as admission rights, not 4-coin commodities** (§2.2–§2.3) — this changes the crafting economics substantially and should shape how the simulation values inventory.
-4. **Determine whether trading is actually necessary** (§2.5) — directly relevant to the event's stated networking purpose, and should be one of the first simulation outputs, not an afterthought.
-5. **Model the three snowball mechanisms together** (§2.7) — loans, winner's-first-pick, and the +5 bonus — before deciding whether any single one (e.g. loan interest) needs rebalancing in isolation.
-6. **Resolve the quest-scoring contradiction** (§4.1) — needed before quest income can be modeled at all.
-7. **Clarify the loan rule, the coin-payment reward question, and the shared-reward-pool question** (§2.4, §4) before touching the interest rate or the scarcity argument in §2.5.
-8. **Add global schedule slack** (§3.1) — the 100-minute program currently has none.
-9. **Design and throughput-test the Guildhall transaction protocol** (§5) rather than just adding volunteers.
-10. **Finalize guild special items and unique quests** (§2.6) so they can be included in the simulation.
-11. **Build the full simulation** against the plan in §8, only once 1–10 above are settled.
+1. ✅ **Use the corrected room/opponent rotation** (§1) — adopted in the ruleset, validated by simulation (100% vs. 38% completion).
+2. ✅ **Correct understanding of starting hands** (§2.1) — adopted, coordinated with the rotation.
+3. ✅ **Model Tier‑2 items as admission rights, not 4-coin commodities** (§2.2–§2.3) — built into the simulator's `GreedyPolicy`.
+4. ✅ **Determine whether trading is actually necessary** (§2.5) — tested; answer is "it needs *some* exchange, but skilled play satisfies that with coin purchases, not barter, and removing purchases doesn't fix that" (see updated §2.5 above).
+5. ✅ **Model the three snowball mechanisms together** (§2.7) — loan interest turned out to be the one that mattered; reward-pick-order tested and found to make no meaningful difference.
+6. ✅ **Resolve the quest-scoring contradiction** (§4.1) — resolved in the corrected ruleset (per-quest tables, not the generic scale).
+7. ✅ **Clarify the loan rule, coin-payment reward, and shared-reward-pool questions** (§2.4, §4) — all resolved in the corrected ruleset's config/rules; loan interest additionally *lowered* from double to 1.5× based on the tuning sweep.
+8. ✅ **Add global schedule slack** (§3.1) — adopted in the corrected ruleset.
+9. ✅ **Design the Guildhall transaction protocol** (§5) — staffing and a self-service option specified in the corrected ruleset; not yet throughput-tested in a live rehearsal.
+10. ⬜ **Finalize guild special items and unique quests** (§2.6) — still open, needs the organizer's input, not something further analysis can resolve.
+11. ✅ **Build the full simulation** against the plan in §8 — built, reviewed through 3 rounds, merged, and used for the tuning sweep above.
 
 ---
 
-*Next: build the agent-based simulation described in §8.*
+*Remaining open item: §2.6 (guild specials), which needs the event organizer, not more analysis. Everything else in this list has moved from "recommendation" to "adopted and tested."*

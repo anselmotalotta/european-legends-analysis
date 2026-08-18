@@ -241,6 +241,9 @@ class GameEngine:
             if traded:
                 continue
 
+            if not self.config.allow_coin_purchases:
+                continue
+
             purchase = policy.seek_purchase(guild, unvisited, self.config, self.rng)
             if not purchase:
                 continue

@@ -29,12 +29,19 @@ others. **[Read the full analysis](analysis/game-balance-analysis.md)**
 (also as a [styled page](https://anselmotalotta.github.io/european-legends-analysis/))
 for the reasoning behind each fix.
 
-To answer questions the written analysis couldn't settle on its own —
-chiefly, *do guilds actually need to trade with each other to do
-well?* — a **[computer simulation](simulation/README.md)** plays
-through hundreds of practice games and reports back what tends to
-happen. Includes step-by-step instructions to run it yourself, no
-programming experience required.
+To answer questions the written analysis couldn't settle on its own, a
+**[computer simulation](simulation/README.md)** plays through hundreds
+of practice games and reports back what tends to happen — includes
+step-by-step instructions to run it yourself, no programming
+experience required. It's already changed one rule: loan interest was
+lowered from double to 1.5× after testing showed the original rate
+measurably widened the gap between stronger and weaker guilds. It also
+answered the trading question, with a twist — guilds do need to
+exchange items to do well, but skilled play satisfies that mostly
+through coin purchases rather than genuine back-and-forth barter, and
+testing found that simply restricting purchases doesn't fix that, it
+just reduces how much guilds interact at all. See the simulation's
+README for the full picture.
 
 ---
 
