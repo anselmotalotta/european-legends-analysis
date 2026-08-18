@@ -1,61 +1,165 @@
-# Simulator
+# European Legends Simulator
 
-An agent-based simulation of the guild economy described in
-[`../analysis/game-balance-analysis.md`](../analysis/game-balance-analysis.md)
-§8. Built per that section's guardrails:
+## What this is
 
-1. **Every ambiguous rule (analysis §4) is a config flag with a documented default**, not a silent hard-code — see [`sim/config.py`](sim/config.py). Nothing here should be read as "the real rules definitely work this way"; several flags are explicit modeling choices pending clarification from the organizer.
-2. **Multiple agent policies from day one** — see [`sim/policies.py`](sim/policies.py). `GreedyPolicy` reasons about shadow value and upcoming room needs (analysis §2.2); `CasualPolicy` treats items as flat liquidation values and crafts up greedily (the naive model the analysis's first draft used and corrected). Every decision point the analysis's §8 review round required — craft choice, room-access valuation, trade initiation/acceptance, and reward-card selection — is a genuinely different concrete rule between the two policies, not a shared implementation with a label swapped.
-3. **Comparative, not predictive** — [`sim/experiment.py`](sim/experiment.py) runs paired batches (e.g. fixed rotation vs. free-choice scheduling) under the same policy mix, **using common random numbers across both arms** (same seed range, so both configs face the same skill draws/starting hands/shuffles), and reports the difference. Treat outputs as "design A differs from design B under these policies," not as a forecast of the real event's numbers.
+A small computer program that plays hundreds of practice rounds of the
+*European Legends Office Adventure Game* (the charity team-building
+game — see the [full rules](../analysis/corrected-ruleset-v2.md)) and
+reports back what tends to happen: how often teams finish the game
+fairly, how much they trade with each other, how much debt weaker
+teams end up in, and so on.
 
-## Review history
+## What it does
 
-**r1** (commit `1d80903`) verified the economy against the original design document directly and found the core mechanics faithful, but flagged two real bugs and one significant, undisclosed scope gap — all fixed in the current commit:
+It builds a simplified computer model of the game's economy — teams
+producing raw materials, crafting them into more valuable items,
+visiting activity rooms, borrowing coins when short, and trading with
+each other — and runs that model over and over with small random
+variations (different starting hands, different luck, different
+skill levels), the same way you might playtest a board game hundreds
+of times to see how balanced it is, except a computer can do it in
+seconds instead of months.
 
-- **F1 (fixed):** `compare()` ran its two arms on disjoint seed ranges despite claiming to be "paired" — every reported difference was design effect *plus* unmeasured sampling noise. Confirmed concretely: an unpaired run of the specialty win-rate metric showed a fully inverted ranking that vanished once seeds were shared. Now both arms of `compare()` use the same `seed_start` (common random numbers).
-- **F2 (fixed):** room-score ties were resolved as `score_a >= score_b`, which silently made "guild A" (whichever guild is listed first in `FIXED_ROTATION`'s tuples) win every tie — not the random tie-break the source document specifies. Pulled into a pure `resolve_room_winner()` function and fixed to break ties randomly; `resolve_pick_order()` separately handles the §2.7/§8 reward-pick-order question, which is a different thing from who actually won.
-- **F3 (fixed, and this changes the headline finding):** the original version had no way for a guild to buy a needed item with coins — only item-for-item trades were modeled, despite the source document saying guilds may exchange items "for coins or other items." This mattered a lot: a guild's shadow value for a needed item (up to 15) could exceed a seller's liquidation valuation of it (at most 14), and a coin side-payment is exactly what bridges that gap. **`seek_purchase`/`accept_purchase` are now implemented on both policies, and the previously-reported "greedy play produces ~0 trades" finding no longer holds** — see below.
-- **F4 (fixed):** `winner_picks_reward_first` was a boolean, but §8's design-variant list has three cases (winner-first / loser-first / random), and "random" is also the source document's own rule for tie-breaking which *item* gets chosen. Replaced with `reward_pick_order: str`.
-- Two smaller findings (reward-pool exclusion applying regardless of payment method; unconditional Tier-1→Tier-2 crafting quietly consuming would-be trade inventory) were judged harmless but are now called out in code comments rather than left silent.
+## What it's for
 
-See `tests/test_review_r1_fixes.py` for regression tests locking in each fix.
+The [written rules analysis](../analysis/game-balance-analysis.md)
+raised several open questions that can't be answered just by reading
+the rules — for example: *do teams actually need to trade with each
+other to do well, or can a team just play alone and still win?* This
+simulator exists to answer questions like that with real numbers
+instead of guesswork, and to let us try out rule changes (a different
+room schedule, a different loan penalty, etc.) and see which version
+is actually better before deciding to use it at the real event.
 
-## Scope of this first version
+## How to use it
 
-Deliberately small, per the review's guardrail: the core economy, room
-access, crafting, trading, loans, reward cards, and scoring are modeled
-cleanly. **Not modeled**: guild-special Tier-3 items and unique
-per-guild quests (analysis §2.6) — these are still "in elaboration" in
-the source document, so there's nothing concrete to simulate yet.
+You don't need any programming experience to run this — just follow
+the steps below exactly, one at a time.
 
-## Known simplifications (stated, not hidden)
+### Step 1 — Install Python (skip if you already have it)
 
-- **Quest performance is abstracted**, not content-simulated. Each guild draws a `quest_skill` in `[0, 1]` per room-quest and scores are read off each quest's own table (`sim/quests.py`) using that skill. This is a real simplification — actually simulating "identify 10 musical excerpts" would be noise dressed up as precision for an economy simulator. If quest-specific skill correlation matters later (e.g. "guilds good at music are also good at art"), that's a natural extension.
-- **One trade attempt per guild per trading break.** A guild's policy proposes at most one trade and searches partners in random order until one accepts. This is not exhaustive matchmaking; a more thorough market-clearing mechanism is a plausible future refinement if trade volume turns out to matter a lot.
-- **Free-choice scheduling requires 2 guilds per room to count as a valid visit** (matching "only two guilds can compete in each room in the same round" in the source), stricter than the standalone [`../toy_scheduling_model.py`](../toy_scheduling_model.py), which didn't model that constraint. This is why the full engine's free-choice completion rate (§ below) is somewhat lower than the toy model's 38.2% — not a bug, a more faithful constraint.
+This tool is written in a programming language called **Python**.
+Macs and Linux computers usually already have it. Windows computers
+usually don't.
 
-## Early findings from this version (illustrative, not final)
+**Check whether you already have it:**
 
-Running `python3 -m sim.experiment` (or see `tests/test_engine.py` / `tests/test_review_r1_fixes.py` for the pinned assertions), 400-game batches, paired seeds:
+1. Open a terminal:
+   - **Mac:** press `Cmd + Space`, type `Terminal`, press Enter.
+   - **Windows:** press the Windows key, type `cmd`, press Enter.
+   - **Linux:** open your Terminal app.
+2. Type this and press Enter:
+   ```
+   python3 --version
+   ```
+   (On Windows, if that says it isn't recognized, try `python --version` instead.)
+3. If you see something like `Python 3.11.4`, you already have it — skip to Step 2.
 
-- **The §1 fixed rotation reaches 100% room completion by construction**, vs. ~37% for free-choice scheduling under the same policies — reproducing the standalone toy model's ~38.2% finding inside the full economic engine, not just the isolated scheduling model.
-- **Trading is no longer near-zero under rational play, now that coin purchases are modeled (F3 above).** All-greedy: mean 2.7 trades/guild, 5% of guilds finish with zero trades (previously ~2.7 vs. 0, and 5% vs. 100% before the fix). The self-sufficient "solo chaining" mechanism from §2.5 is still real and still visible — greedy guilds trade far less than casual ones — but it does **not** eliminate trading once a coin side-payment is available to bridge the shadow-value/liquidation-value gap. **Revised takeaway: the room-circuit's type-converting reward mechanic reduces reliance on trading, but doesn't make it unnecessary once guilds can pay coin premiums for exactly what they need.** This is a materially different conclusion from the pre-fix version of this document, which should be treated as superseded.
-- **Casual and mixed policy mixes still produce meaningfully more loan debt than all-greedy play** (mean debt/guild: ~13 casual vs. ~1.3 greedy) — behavior quality matters a lot for who ends up in debt, independent of the trading question.
-- **Specialty win-rate is not stable across policy mixes** in this version — Charcoal-specialty guilds (Prague/Vienna) lead under all-greedy and all-casual play, but Flax/Saltpetre lead under a 50/50 mix, with Charcoal trailing. This looks more like noise or a mix-dependent interaction than a fixed structural bias, but it's not yet explained (§8 item 8) — worth investigating further before drawing any conclusion about guild-specialty fairness, and worth more trials than the ones run so far given how much the ranking moved between mixes.
+**If you got an error** ("command not found" or similar), install Python:
 
-These are first-version results from one specific implementation of "rational" and "casual," not conclusions about the real event — see the caveats above. They have already changed once (see review history) and may change again as the model is extended.
+1. Go to https://www.python.org/downloads/ in your web browser.
+2. Click the big yellow "Download Python" button.
+3. Open the file you downloaded and follow the installer.
+   - **On Windows**, make sure to tick the box that says **"Add Python to PATH"** before clicking Install — this step is easy to miss and things won't work without it.
+4. Once it's finished, close and reopen your terminal, then repeat the check above to confirm it worked.
 
-## Running it
+### Step 2 — Download this project
 
-```bash
+1. Go to the project's page: https://github.com/anselmotalotta/european-legends-analysis
+2. Click the green **"Code"** button, then click **"Download ZIP"**.
+3. Find the downloaded ZIP file (usually in your Downloads folder) and unzip it:
+   - **Mac:** double-click it.
+   - **Windows:** right-click it and choose "Extract All".
+4. You'll now have a folder named something like `european-legends-analysis-main`.
+
+### Step 3 — Open a terminal inside the project folder
+
+- **Mac:** open the folder in Finder, right-click anywhere inside the empty space, and choose **"New Terminal at Folder"**.
+- **Windows:** open the folder in File Explorer, click once in the address bar at the top (where the folder path is written), type `cmd`, and press Enter.
+
+A terminal window should open, already "inside" that folder.
+
+### Step 4 — Move into the simulator folder
+
+Type this and press Enter:
+
+```
 cd simulation
-python3 -m pytest tests/ -v      # 32 tests, ~0.3s
-python3 -m sim.experiment         # comparative batches, prints JSON summaries
 ```
 
-No dependencies beyond the Python 3 standard library and `pytest` for tests.
+### Step 5 — Run it
 
-## Layout
+Type this and press Enter:
+
+```
+python3 -m sim.experiment
+```
+
+(On Windows, if that doesn't work, try `python -m sim.experiment` instead.)
+
+It will take a few seconds to run — it's quietly playing through 500
+practice games behind the scenes. When it's done, you'll see a report
+like this, printed three times (once for each mix of "smart" and
+"casual" play styles being tested):
+
+```
+===================================================
+ Policy mix: all-greedy
+===================================================
+
+  --- fixed_rotation ---
+  Ran 500 practice games.
+  Average final score across all guilds: 66.8 coins (lowest game: 12, highest: 121).
+  All 8 guilds visited all 4 rooms in 100% of games.
+  On average, each guild made 2.5 trades with other guilds (7% of guilds made no trades at all).
+  On average, each guild took out 0.2 loan(s), ending the game owing 1.3 coins in debt.
+
+  --- free_choice ---
+  Ran 500 practice games.
+  ...
+```
+
+Each block compares two versions of the rules side by side — in the
+example above, **"fixed_rotation"** is the recommended room-scheduling
+rule from the written analysis, and **"free_choice"** is what happens
+if teams are just left to pick rooms on their own. Reading down the
+two blocks tells you which version actually works better, and by how
+much.
+
+### Something not working?
+
+- **`command not found: python3`** — Python isn't installed correctly. Go back to Step 1.
+- **`No module named sim`** — you're not inside the `simulation` folder. Go back to Step 4 and make sure `cd simulation` worked (your terminal prompt should now show `simulation` at the end).
+- **Anything else** — copy the exact error message and ask whoever set this up for you for help.
+
+---
+
+## For developers
+
+*(Everything below this line assumes you're comfortable reading code.
+If you just want to run the simulator, everything you need is above.)*
+
+### Design principles
+
+1. **Every ambiguous rule (analysis §4) is a config flag with a documented default**, not a silent hard-code — see [`sim/config.py`](sim/config.py). Nothing here should be read as "the real rules definitely work this way"; several flags are explicit modeling choices pending clarification from the organizer.
+2. **Multiple agent policies from day one** — see [`sim/policies.py`](sim/policies.py). `GreedyPolicy` reasons about shadow value and upcoming room needs (analysis §2.2); `CasualPolicy` treats items as flat liquidation values and crafts up greedily (the naive model the analysis's first draft used and corrected). Every decision point — craft choice, room-access valuation, trade/purchase initiation and acceptance, reward-card selection — is a genuinely different concrete rule between the two policies, not a shared implementation with a label swapped.
+3. **Comparative, not predictive** — [`sim/experiment.py`](sim/experiment.py) runs paired batches under the same policy mix, using common random numbers across both arms (same seed range, so both configs face the same skill draws/starting hands/shuffles), and reports the difference. Treat outputs as "design A differs from design B under these policies," not as a forecast of the real event's numbers.
+
+### Scope of this first version
+
+Deliberately small: the core economy, room access, crafting, trading,
+loans, reward cards, and scoring are modeled cleanly. **Not modeled**:
+guild-special Tier-3 items and unique per-guild quests (analysis
+§2.6) — still "in elaboration" in the source document, so there's
+nothing concrete to simulate yet.
+
+### Known simplifications (stated, not hidden)
+
+- **Quest performance is abstracted**, not content-simulated. Each guild draws a `quest_skill` in `[0, 1]` per room-quest and scores are read off each quest's own table (`sim/quests.py`) using that skill. Actually simulating "identify 10 musical excerpts" would be noise dressed up as precision for an economy simulator.
+- **One trade/purchase attempt per guild per trading break** — not exhaustive matchmaking.
+- **Free-choice scheduling requires 2 guilds per room to count as a valid visit** (matching "only two guilds can compete in each room in the same round" in the source), stricter than the standalone [`../toy_scheduling_model.py`](../toy_scheduling_model.py), which didn't model that constraint — this is why the full engine's free-choice completion rate is somewhat lower than that model's 38.2%.
+
+### Layout
 
 - `sim/items.py` — Tier-1/2/3 items, the conversion recipe graph, room prerequisites, sell prices.
 - `sim/config.py` — frozen rules interpretation; every §4 ambiguity is a flagged default here.
@@ -65,14 +169,32 @@ No dependencies beyond the Python 3 standard library and `pytest` for tests.
 - `sim/policies.py` — `GreedyPolicy` and `CasualPolicy` agent behaviors.
 - `sim/engine.py` — the round-by-round game loop.
 - `sim/metrics.py` — aggregate statistics across many games.
-- `sim/experiment.py` — comparative batch runner.
-- `tests/` — pytest suite covering recipes, rotation integrity, loan math, end-to-end engine behavior, and review r1's fixes (`test_review_r1_fixes.py`).
+- `sim/experiment.py` — comparative batch runner (`--json` flag prints raw data instead of the plain-English summary).
+- `tests/` — pytest suite (32 tests) covering recipes, rotation integrity, loan math, end-to-end engine behavior, and review fixes.
 
-## Not yet done (left for a future iteration)
+Run the test suite with:
+```
+python3 -m pytest tests/ -v
+```
+
+### Not yet done (left for a future iteration)
 
 - Shadow-value-by-round and marginal per-room expected value (analysis §8 items 6-7) — need price inference / counterfactual re-runs, not just bookkeeping.
 - Guild-special items and unique quests (§2.6), once finalized in the source.
-- A more thorough trade-matching mechanism (still one attempt per guild per break, now across two instruments - barter and coin purchase - rather than one).
-- Explaining the specialty win-rate instability noted above (§8 item 8) rather than just reporting it.
+- A more thorough trade-matching mechanism (still one attempt per guild per break, across two instruments — barter and coin purchase).
+- Explaining the specialty win-rate spread noted below (§8 item 8) rather than just reporting it.
 - The full §8 design-variant sweep (loan interest, Tier-3 prices, reward-pick-order, mandatory trading windows) - `sim/experiment.py` and `sim/config.py`'s `reward_pick_order` support this now, but only the rotation comparison is wired up as a worked example.
-- A separate `Guild.purchase_count` distinct from `trade_count` (review r2, non-blocking): right now barter swaps and coin purchases both increment the same counter, so "trades" in the metrics is really barter+purchases combined. Splitting them would let the README's claim about *how* trading happens (barter vs. paying one's way in) be read straight off the metrics instead of needing one-off instrumentation to check.
+- A separate `Guild.purchase_count` distinct from `trade_count`: right now barter swaps and coin purchases both increment the same counter, so "trades" in the metrics is really barter+purchases combined.
+
+### Findings from this version so far (illustrative, not final)
+
+400-game batches, paired seeds:
+
+- **The fixed room rotation reaches 100% room completion by construction**, vs. ~37% for free-choice scheduling under the same policies — reproducing the standalone toy model's ~38.2% finding inside the full economic engine.
+- **Trading happens under rational play, but far less than under casual play.** All-greedy: mean 2.7 trades/guild, 5% of guilds finish with zero trades. The self-sufficient "solo chaining" mechanism from analysis §2.5 is real and reduces reliance on trading, but doesn't eliminate it once a coin side-payment can bridge the gap between a needed item's value and a seller's liquidation value for it.
+- **Casual and mixed policy mixes produce meaningfully more loan debt than all-greedy play** (mean debt/guild: ~13 casual vs. ~1.3 greedy).
+- **Specialty win-rate is not stable across policy mixes** in this version — which specialty leads changes depending on the policy mix, more consistent with noise or a mix-dependent interaction than a fixed structural bias, but not yet explained (§8 item 8).
+
+### Review history
+
+This simulator went through three rounds of independent code review before merging (see PR #1 in this repo's history for the full transcript). Round 1 found four real issues — an unpaired comparison that let sampling noise masquerade as a design effect, a biased deterministic tie-break, a missing coin-purchase mechanism that materially changed the headline trading finding, and a boolean config flag too narrow to express a three-way design variant — all fixed and covered by regression tests in `tests/test_review_r1_fixes.py`. Rounds 2 and 3 confirmed the fixes and approved.

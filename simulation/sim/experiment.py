@@ -54,9 +54,31 @@ def mixed_policy(config, greedy_fraction=0.5, seed=0):
     return {name: ("greedy" if i < n_greedy else "casual") for i, name in enumerate(names)}
 
 
+def print_human_summary(report, mix_name):
+    """Plain-English summary of one compare() report, for readers who
+    don't want to parse the raw numbers themselves. Pass --json on the
+    command line instead to see the full data."""
+    print(f"\n===================================================")
+    print(f" Policy mix: {mix_name}")
+    print(f"===================================================")
+    for label, summary in report.items():
+        print(f"\n  --- {label} ---")
+        print(f"  Ran {summary['n_games']} practice games.")
+        print(f"  Average final score across all guilds: {summary['score']['mean']:.1f} coins "
+              f"(lowest game: {summary['score']['min']}, highest: {summary['score']['max']}).")
+        print(f"  All 8 guilds visited all 4 rooms in {summary['pct_games_all_guilds_complete']:.0f}% of games.")
+        print(f"  On average, each guild made {summary['mean_trades_per_guild']:.1f} trades with other guilds "
+              f"({summary['pct_guilds_zero_trades']:.0f}% of guilds made no trades at all).")
+        print(f"  On average, each guild took out {summary['mean_loans_per_guild']:.1f} loan(s), "
+              f"ending the game owing {summary['mean_debt_per_guild']:.1f} coins in debt.")
+    print()
+
+
 if __name__ == "__main__":
+    import sys
     from .config import GameConfig
-    import json
+
+    show_raw_json = "--json" in sys.argv
 
     base = GameConfig()
     free_choice = dataclasses.replace(base, use_fixed_rotation=False, coordinate_starting_hands=False)
@@ -66,5 +88,9 @@ if __name__ == "__main__":
         mix = mix_fn(base)
         report = compare(base, free_choice, mix, n_trials=500,
                           label_base="fixed_rotation", label_variant="free_choice")
-        print(f"\n=== policy mix: {mix_name} ===")
-        print(json.dumps(report, indent=2, default=str))
+        if show_raw_json:
+            import json
+            print(f"\n=== policy mix: {mix_name} ===")
+            print(json.dumps(report, indent=2, default=str))
+        else:
+            print_human_summary(report, mix_name)
