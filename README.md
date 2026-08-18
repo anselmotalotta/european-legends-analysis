@@ -1,28 +1,40 @@
 # European Legends — Office Adventure Game
 
-## What this is
+A charity team-building adventure game for the EIB Group, played by 8
+guilds of 5 players over a 100-minute event on 17 September 2026.
+Guilds produce and trade raw materials, craft them into more valuable
+goods, and compete in four themed activity rooms — music, art,
+history, riddles — to raise money for charity and finish with the
+most coins.
 
-A charity team-building game ("European Legends Office Adventure
-Game") is being run for the EIB Group on 17 September 2026 — 8 teams
-("guilds") of 5 players, trading and crafting their way through a
-100-minute in-person event. This repository holds an independent
-review of that game's rules, a corrected/completed version of the
-rules, and a computer simulation used to test how well the game
-actually works before it's run for real.
+## The rules
 
-## What's here
+**[Read the rules](analysis/corrected-ruleset-v2.md)** — everything
+needed to run the event: setup, the 100-minute schedule, the guilds,
+the trading/crafting economy, the four activity rooms and their
+quests, and scoring. Also available as a
+[Word document](analysis/corrected-ruleset-v2.docx) if that's easier
+to edit or print.
 
-- **[The rules you should actually use](analysis/corrected-ruleset-v2.md)** — a corrected, ready-to-print version of the game's rules, with the fixes below already applied. Also available as a [Word document](analysis/corrected-ruleset-v2.docx) if that's easier to edit or print. **Start here if you just want the rules for the event.**
-- **[Why those corrections were made](analysis/game-balance-analysis.md)** — the full written analysis behind the corrected rules: what was wrong or risky in the original rules and why, also available as a [styled web page](https://anselmotalotta.github.io/european-legends-analysis/).
-- **[The simulator](simulation/README.md)** — a small program that plays hundreds of practice games to test open questions the written analysis couldn't answer alone (e.g. do teams actually need to trade with each other?). Includes step-by-step instructions for running it, no programming experience required.
+Two things are still placeholders, marked clearly in the rules, and
+need the organizer's input before the event: each guild's special item
+and unique quest.
 
-## What's still open
+## Background
 
-Two things need input from the event organizer before the rules are
-fully final:
+The rules above are a corrected version of an earlier draft. An
+independent design review found and fixed several real issues in that
+draft — an unbalanced room schedule, a scoring contradiction, and
+others. **[Read the full analysis](analysis/game-balance-analysis.md)**
+(also as a [styled page](https://anselmotalotta.github.io/european-legends-analysis/))
+for the reasoning behind each fix.
 
-- Each guild's special item and unique quest are still placeholders (marked clearly in the corrected rules).
-- Whether the game's trading incentives need tuning is being investigated by the simulator, not yet conclusively answered.
+To answer questions the written analysis couldn't settle on its own —
+chiefly, *do guilds actually need to trade with each other to do
+well?* — a **[computer simulation](simulation/README.md)** plays
+through hundreds of practice games and reports back what tends to
+happen. Includes step-by-step instructions to run it yourself, no
+programming experience required.
 
 ---
 
